@@ -96,8 +96,31 @@ class WLANThermoPitmasterModeSelect(CoordinatorEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        # Payload must be a list of objects!
-        payload = [{"id": self._pm_idx, "typ": option}]
+        # Get current data to construct full payload
+        pm_data = self._get_pm_data()
+        
+        # Default values if data missing
+        current_channel = pm_data.get("channel", 1)
+        current_pid = pm_data.get("pid", 0)
+        current_value = pm_data.get("value", 0)
+        current_set = pm_data.get("set", 0)
+        # current_typ is replaced by option
+        
+        # specific fix: API expects "set_color" sometimes? No, user snippet uses "set". 
+        
+        # Construct full payload object
+        payload_obj = {
+            "id": self._pm_idx,
+            "channel": current_channel,
+            "pid": current_pid,
+            "value": current_value,
+            "set": current_set,
+            "typ": option
+        }
+        
+        # Wrap in list
+        payload = [payload_obj]
+        
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
         _LOGGER.debug(f"Writing Pitmaster {self._pm_idx} Mode to {option}. Topic: {topic}, Payload: {payload}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
@@ -168,8 +191,27 @@ class WLANThermoPitmasterChannelSelect(CoordinatorEntity, SelectEntity):
             _LOGGER.error(f"Could not parse channel number from option: {option}")
             return
 
-        # Payload must be a list: [{"id": 0, "channel": 1}]
-        payload = [{"id": self._pm_idx, "channel": channel_num}]
+        # Get current data to construct full payload
+        pm_data = self._get_pm_data()
+        
+        current_typ = pm_data.get("typ", "off")
+        current_pid = pm_data.get("pid", 0)
+        current_value = pm_data.get("value", 0)
+        current_set = pm_data.get("set", 0)
+        # current_channel is replaced by channel_num
+
+        # Construct full payload object
+        payload_obj = {
+            "id": self._pm_idx,
+            "channel": channel_num,
+            "pid": current_pid,
+            "value": current_value,
+            "set": current_set,
+            "typ": current_typ
+        }
+
+        # Payload must be a list
+        payload = [payload_obj]
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
         
         _LOGGER.debug(f"Setting Pitmaster {self._pm_idx} Channel to {channel_num} ({option}) on topic {topic}. Payload: {payload}")

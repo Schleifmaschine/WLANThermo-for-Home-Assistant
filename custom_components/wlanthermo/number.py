@@ -240,7 +240,25 @@ class WLANThermoPitmasterSetTempNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        payload = [{"id": self._pm_idx, "set": int(value)}]
+        # Get current data
+        pm_data = self._get_pm_data()
+        
+        current_typ = pm_data.get("typ", "off")
+        current_channel = pm_data.get("channel", 1)
+        current_pid = pm_data.get("pid", 0)
+        current_value = pm_data.get("value", 0)
+        # current_set replaced by value
+
+        payload_obj = {
+            "id": self._pm_idx,
+            "channel": current_channel,
+            "pid": current_pid,
+            "value": current_value,
+            "set": int(value),
+            "typ": current_typ
+        }
+        
+        payload = [payload_obj]
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
         _LOGGER.debug(f"Setting Pitmaster {self._pm_idx} Set Temp to {value}. Payload: {payload}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
@@ -303,8 +321,26 @@ class WLANThermoPitmasterManualValueNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        # Payload for manual value must be 'value' key, and wrapped in list
-        payload = [{"id": self._pm_idx, "value": int(value)}]
+        # Get current data
+        pm_data = self._get_pm_data()
+        
+        current_typ = pm_data.get("typ", "off")
+        current_channel = pm_data.get("channel", 1)
+        current_pid = pm_data.get("pid", 0)
+        current_set = pm_data.get("set", 0)
+        # current_value replaced by value
+
+        payload_obj = {
+            "id": self._pm_idx,
+            "channel": current_channel,
+            "pid": current_pid,
+            "value": int(value),
+            "set": current_set,
+            "typ": current_typ
+        }
+
+        # Payload for manual value must be 'value' key (and wrapped in list with other data)
+        payload = [payload_obj]
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
         _LOGGER.debug(f"Writing Pitmaster {self._pm_idx} Manual Value to {value}. Payload: {payload}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
