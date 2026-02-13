@@ -245,22 +245,36 @@ class WLANThermoPitmasterProfileSelect(CoordinatorEntity, SelectEntity):
             f"{coordinator.topic_prefix}_pitmaster_{pm_idx}_profile"
         )
         self._attr_name = f"{coordinator.device_name} Pitmaster {pm_idx + 1} Profile"
-        # Generic profiles 0..4 (5 profiles) as fallback since we don't have names
-        self._attr_options = [f"Profile {i}" for i in range(5)]
+
+    @property
+    def options(self) -> list[str]:
+        """Return a set of selectable options."""
+        # Dynamic options from coordinator data
+        pid_data = self.coordinator.data.get("pid", [])
+        if pid_data:
+            # Sort by ID just in case
+            sorted_pids = sorted(pid_data, key=lambda x: x.get("id", 0))
+            return [p.get("name", f"Profile {p.get('id')}") for p in sorted_pids]
+        
+        # Fallback if no PID data available yet
+        return [f"Profile {i}" for i in range(5)]
 
     @property
     def current_option(self) -> str | None:
         """Return the selected entity option."""
         # API returns integer pid index
-        pid = self._get_pm_data().get("pid")
-        if pid is not None and 0 <= pid < 5:
-            return f"Profile {pid}"
-        elif pid is not None:
-             # If PID is out of our 0-4 range, we should probably add it or handle it.
-             # For now, return formatted string even if not in _options (HA might warn)
-             # But better to stick to options.
-             return None
-        return None
+        pid_idx = self._get_pm_data().get("pid")
+        if pid_idx is None:
+            return None
+            
+        # Try to find name for this PID index
+        pid_data = self.coordinator.data.get("pid", [])
+        for p in pid_data:
+            if p.get("id") == pid_idx:
+                return p.get("name")
+        
+        # Fallback if name not found but index exists
+        return f"Profile {pid_idx}"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -275,11 +289,25 @@ class WLANThermoPitmasterProfileSelect(CoordinatorEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        try:
-            # Extract number from "Profile X"
-            pid_num = int(option.split(" ")[1])
-        except (IndexError, ValueError):
-            _LOGGER.error(f"Could not parse PID number from option: {option}")
+        pid_num = None
+        
+        # Try to find ID from name
+        pid_data = self.coordinator.data.get("pid", [])
+        for p in pid_data:
+            if p.get("name") == option:
+                pid_num = p.get("id")
+                break
+        
+        # Fallback: parse "Profile X"
+        if pid_num is None:
+            try:
+                if option.startswith("Profile "):
+                    pid_num = int(option.split(" ")[1])
+            except (IndexError, ValueError):
+                pass
+        
+        if pid_num is None:
+            _LOGGER.error(f"Could not determine PID number for option: {option}")
             return
 
         # Get current data to construct full payload

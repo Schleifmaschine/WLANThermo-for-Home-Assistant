@@ -202,6 +202,10 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
                 if key != "pm":
                     self.data["pitmaster"][key] = val
 
+        # PID Profiles (from settings)
+        if "pid" in new_data:
+            self.data["pid"] = new_data["pid"]
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
