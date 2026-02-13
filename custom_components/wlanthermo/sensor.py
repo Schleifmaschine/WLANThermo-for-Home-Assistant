@@ -97,9 +97,6 @@ class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        # Available if temp is not 999. Or should we show "Unavailable" state?
-        # In HA "available=False" means Unavailable.
-        # But for wlanthermo 999 means just "no probe".
         return self._get_channel_data().get("temp") != 999
 
     @property
@@ -108,10 +105,11 @@ class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):
         channel = self._get_channel_data()
         return {
             ATTR_CHANNEL: self._channel_idx + 1,
-            ATTR_MIN_TEMP: channel.get("min"),
+            # WLANThermo API data keys: "min", "max" serve as alarm limits
+            ATTR_MIN_TEMP: channel.get("min"), 
             ATTR_MAX_TEMP: channel.get("max"),
-            ATTR_ALARM_MIN: channel.get("alarm_min"),
-            ATTR_ALARM_MAX: channel.get("alarm_max"),
+            ATTR_ALARM_MIN: channel.get("min"), # Deprecated in our logic, but kept for compatibility mapping if needed
+            ATTR_ALARM_MAX: channel.get("max"),
             ATTR_SENSOR_TYPE: channel.get("typ"),
             ATTR_COLOR: channel.get("color"),
         }

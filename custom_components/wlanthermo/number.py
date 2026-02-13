@@ -67,13 +67,12 @@ class WLANThermoAlarmMinNumber(CoordinatorEntity, NumberEntity):
         """Return the name of the entity."""
         channel_data = self._get_channel_data()
         name = channel_data.get("name")
-        # Ensure unique name by including channel number
         return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} Alarm Min ({name})"
 
     @property
     def native_value(self) -> float | None:
         """Return the current value."""
-        return self._get_channel_data().get("alarm_min")
+        return self._get_channel_data().get("min")
 
     @property
     def device_info(self):
@@ -82,20 +81,17 @@ class WLANThermoAlarmMinNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        channel_data = self._get_channel_data()
-        channel_data["alarm_min"] = int(value)
+        # Send minimal payload: number and the specific value changed (key: "min")
+        payload = {"number": self._channel_idx + 1, "min": int(value)}
 
         # Publish to MQTT
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_CHANNELS}"
-        payload = json.dumps({"number": self._channel_idx + 1, **channel_data}) # API uses 1-based index usually? Need to check.
-        # Based on docs: "number": channel_number (1-8)
-        # correction: self._channel_idx is 0-based. So +1.
         
-        _LOGGER.debug(f"Setting Alarm Min for channel {self._channel_idx + 1} to {value} on topic {topic}")
-        await mqtt.async_publish(self.hass, topic, payload)
+        _LOGGER.debug(f"Setting Alarm Min for channel {self._channel_idx + 1} to {value} on topic {topic} with payload {payload}")
+        await mqtt.async_publish(self.hass, topic, json.dumps(payload))
 
-        # Update coordinator data
-        self.coordinator.data["channel"][self._channel_idx] = channel_data
+        # Update coordinator data optimistically
+        self.coordinator.data["channel"][self._channel_idx]["min"] = int(value)
         self.async_write_ha_state()
 
     def _get_channel_data(self) -> dict:
@@ -135,7 +131,7 @@ class WLANThermoAlarmMaxNumber(CoordinatorEntity, NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return the current value."""
-        return self._get_channel_data().get("alarm_max")
+        return self._get_channel_data().get("max")
 
     @property
     def device_info(self):
@@ -144,19 +140,17 @@ class WLANThermoAlarmMaxNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        channel_data = self._get_channel_data()
-        channel_data["alarm_max"] = int(value)
+        # Send minimal payload (key: "max")
+        payload = {"number": self._channel_idx + 1, "max": int(value)}
 
         # Publish to MQTT
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_CHANNELS}"
-        # API expects 1-based channel number usually
-        payload = json.dumps({"number": self._channel_idx + 1, **channel_data})
         
-        _LOGGER.debug(f"Setting Alarm Max for channel {self._channel_idx + 1} to {value} on topic {topic}")
-        await mqtt.async_publish(self.hass, topic, payload)
+        _LOGGER.debug(f"Setting Alarm Max for channel {self._channel_idx + 1} to {value} on topic {topic} with payload {payload}")
+        await mqtt.async_publish(self.hass, topic, json.dumps(payload))
 
-        # Update coordinator data
-        self.coordinator.data["channel"][self._channel_idx] = channel_data
+        # Update coordinator data optimistically
+        self.coordinator.data["channel"][self._channel_idx]["max"] = int(value)
         self.async_write_ha_state()
 
     def _get_channel_data(self) -> dict:

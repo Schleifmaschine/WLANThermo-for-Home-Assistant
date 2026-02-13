@@ -84,34 +84,34 @@ class WLANThermoOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # Defaults placeholders
+        # Simplified retrieval to avoid potential issues
+        # Defaults
         default_name = DEFAULT_NAME
         default_topic = DEFAULT_TOPIC_PREFIX
-
+        
         try:
-            # Try to get from options, then data, then const
+            # We access defaults directly from data if available, as options might be empty
+            # Use data as primary source for defaults if options are not set
             if self.config_entry.options:
-                default_name = self.config_entry.options.get(CONF_DEVICE_NAME, default_name)
-                default_topic = self.config_entry.options.get(CONF_TOPIC_PREFIX, default_topic)
-            
-            if self.config_entry.data:
-                # If not in options (or default), try data. 
-                # Note: This logic overrides options if they match default, which is fine mostly.
-                # Better: prioritize options if key exists.
-                if CONF_DEVICE_NAME not in (self.config_entry.options or {}):
-                     default_name = self.config_entry.data.get(CONF_DEVICE_NAME, default_name)
-                if CONF_TOPIC_PREFIX not in (self.config_entry.options or {}):
-                     default_topic = self.config_entry.data.get(CONF_TOPIC_PREFIX, default_topic)
+                default_name = self.config_entry.options.get(CONF_DEVICE_NAME, 
+                                                             self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME))
+                default_topic = self.config_entry.options.get(CONF_TOPIC_PREFIX, 
+                                                              self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX))
+            else:
+                 default_name = self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME)
+                 default_topic = self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX)
+        except Exception as e:
+            _LOGGER.error("Failed to load options defaults: %s", e)
+            # Fallback to hardcoded defaults in worst case
+            default_name = DEFAULT_NAME
+            default_topic = DEFAULT_TOPIC_PREFIX
 
-        except Exception:
-            _LOGGER.warning("Failed to retrieve config entry data/options, utilizing defaults")
-
-        # Create schema with calculated defaults
-        options_schema = vol.Schema(
-            {
-                vol.Optional(CONF_DEVICE_NAME, default=default_name): cv.string,
-                vol.Optional(CONF_TOPIC_PREFIX, default=default_topic): cv.string,
-            }
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_DEVICE_NAME, default=str(default_name)): cv.string,
+                    vol.Optional(CONF_TOPIC_PREFIX, default=str(default_topic)): cv.string,
+                }
+            ),
         )
-
-        return self.async_show_form(step_id="init", data_schema=options_schema)
