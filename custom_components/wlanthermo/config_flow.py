@@ -8,7 +8,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
@@ -42,14 +42,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Set unique ID based on topic prefix
-            await self.async_set_unique_id(user_input[CONF_TOPIC_PREFIX])
-            self._abort_if_unique_id_configured()
+            try:
+                # Set unique ID based on topic prefix
+                await self.async_set_unique_id(user_input[CONF_TOPIC_PREFIX])
+                self._abort_if_unique_id_configured()
 
-            return self.async_create_entry(
-                title=user_input[CONF_DEVICE_NAME],
-                data=user_input,
-            )
+                return self.async_create_entry(
+                    title=user_input[CONF_DEVICE_NAME],
+                    data=user_input,
+                )
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
 
         return self.async_show_form(
             step_id="user",
@@ -58,6 +62,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     @staticmethod
+    @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> OptionsFlow:
