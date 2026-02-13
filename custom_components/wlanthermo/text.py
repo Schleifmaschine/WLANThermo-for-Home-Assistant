@@ -39,6 +39,7 @@ async def async_setup_entry(
         if "channel" in coordinator.data:
             for idx, channel in enumerate(coordinator.data["channel"]):
                 entities.append(WLANThermoChannelNameText(coordinator, idx))
+                entities.append(WLANThermoChannelColorText(coordinator, idx))
 
         async_add_entities(entities)
 
@@ -105,6 +106,65 @@ class WLANThermoChannelNameText(CoordinatorEntity, TextEntity):
 
         # Optimistic update
         self.coordinator.data["channel"][self._channel_idx]["name"] = value
+        self.async_write_ha_state()
+
+    def _get_channel_data(self) -> dict:
+        """Get channel data from coordinator."""
+        if not self.coordinator.data or "channel" not in self.coordinator.data:
+            return {}
+        channels = self.coordinator.data["channel"]
+        if self._channel_idx < len(channels):
+            return channels[self._channel_idx].copy()
+        return {}
+
+
+class WLANThermoChannelColorText(CoordinatorEntity, TextEntity):
+    """Representation of a WLANThermo channel color text entity."""
+
+    _attr_pattern = r"^#[0-9a-fA-F]{6}$" # Simple Hex color validation
+    _attr_icon = "mdi:palette"
+
+    def __init__(self, coordinator, channel_idx: int) -> None:
+        """Initialize the text entity."""
+        super().__init__(coordinator)
+        self._channel_idx = channel_idx
+        self._attr_unique_id = (
+            f"{coordinator.topic_prefix}_channel_{channel_idx}_color"
+        )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the entity."""
+        return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} Color"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the current value."""
+        return self._get_channel_data().get("color")
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_channel_{self._channel_idx}")},
+            name=f"{self.coordinator.device_name} Channel {self._channel_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Channel Sensor",
+        )
+
+    async def async_set_value(self, value: str) -> None:
+        """Update the current value."""
+        # Publish to MQTT
+        topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_CHANNELS}"
+        # Payload with "number" and "color"
+        payload = {"number": self._channel_idx + 1, "color": value}
+        
+        _LOGGER.debug(f"Setting Color for channel {self._channel_idx + 1} to '{value}' on topic {topic}")
+        await mqtt.async_publish(self.hass, topic, json.dumps(payload))
+
+        # Optimistic update
+        self.coordinator.data["channel"][self._channel_idx]["color"] = value
         self.async_write_ha_state()
 
     def _get_channel_data(self) -> dict:

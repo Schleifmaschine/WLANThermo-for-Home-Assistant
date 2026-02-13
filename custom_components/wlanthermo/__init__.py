@@ -107,11 +107,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_finish_startup(hass: HomeAssistant, entry: ConfigEntry, event: asyncio.Event):
     """Wait for data and then load platforms."""
-    try:
-        # Wait up to 10 seconds for data
-        await asyncio.wait_for(event.wait(), timeout=10)
-    except asyncio.TimeoutError:
-        _LOGGER.warning("Timed out waiting for initial data from WLANThermo. Entites might be missing until data is received.")
+    # We used to wait here, but that caused "Config entry was never loaded" errors
+    # if the entry was unloaded (e.g. reload) while waiting.
+    # The platforms handle missing data gracefully now (by waiting themselves).
+    # So we just forward immediately to register the entry as "loaded".
+    
+    # Optional: We could still wait a tiny bit or check event to log a message,
+    # but strictly speaking we should just proceed.
     
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -205,6 +207,10 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
         # PID Profiles (from settings)
         if "pid" in new_data:
             self.data["pid"] = new_data["pid"]
+
+        # Sensors (from settings) - definitions of sensor types
+        if "sensors" in new_data:
+            self.data["sensors"] = new_data["sensors"]
 
     @property
     def device_info(self) -> DeviceInfo:
