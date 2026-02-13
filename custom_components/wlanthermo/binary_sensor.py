@@ -23,35 +23,55 @@ async def async_setup_entry(
 
     entities: list[BinarySensorEntity] = []
 
-    # Wait for first data
-    if not coordinator.data:
-        return
+    @callback
+    def _create_entities():
+        """Create entities when data is available."""
+        if not coordinator.data:
+            return
 
-    # Add system binary sensors
-    entities.extend(
-        [
-            WLANThermoBinarySensor(
-                coordinator,
-                "online",
-                "Online",
-                BinarySensorDeviceClass.CONNECTIVITY,
-            ),
-            WLANThermoBinarySensor(
-                coordinator,
-                "charge",
-                "Charging",
-                BinarySensorDeviceClass.BATTERY_CHARGING,
-            ),
-        ]
-    )
-    
-    # Add pitmaster active binary sensors (optional, if useful)
-    if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
-        for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
-             if pm.get("typ") != "off": # Or logic to determine if active
-                 pass # Maybe not strictly a binary sensor needed if we have select/mode
+        entities: list[BinarySensorEntity] = []
 
-    async_add_entities(entities)
+        # Add system binary sensors
+        entities.extend(
+            [
+                WLANThermoBinarySensor(
+                    coordinator,
+                    "online",
+                    "Online",
+                    BinarySensorDeviceClass.CONNECTIVITY,
+                ),
+                WLANThermoBinarySensor(
+                    coordinator,
+                    "charge",
+                    "Charging",
+                    BinarySensorDeviceClass.BATTERY_CHARGING,
+                ),
+            ]
+        )
+        
+        # Add pitmaster active binary sensors (optional, if useful)
+        if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
+            for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
+                 if pm.get("typ") != "off": # Or logic to determine if active
+                     pass # Maybe not strictly a binary sensor needed if we have select/mode
+
+        async_add_entities(entities)
+
+    if coordinator.data:
+        _create_entities()
+    else:
+        # Wait for data
+        unsub = None
+        @callback
+        def _data_received():
+            """Handle first data."""
+            nonlocal unsub
+            if unsub:
+                unsub()
+                unsub = None
+            _create_entities()
+
+        unsub = coordinator.async_add_listener(_data_received)
 
 
 class WLANThermoBinarySensor(CoordinatorEntity, BinarySensorEntity):

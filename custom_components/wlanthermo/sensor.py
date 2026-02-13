@@ -40,30 +40,50 @@ async def async_setup_entry(
 
     entities: list[SensorEntity] = []
 
-    # Wait for first data
-    if not coordinator.data:
-        return
+    @callback
+    def _create_entities():
+        """Create entities when data is available."""
+        if not coordinator.data:
+            return
 
-    # Add channel temperature sensors
-    if "channel" in coordinator.data:
-        for idx, channel in enumerate(coordinator.data["channel"]):
-            entities.append(WLANThermoTemperatureSensor(coordinator, idx))
+        entities: list[SensorEntity] = []
 
-    # Add system sensors
-    entities.extend(
-        [
-            WLANThermoSystemSensor(coordinator, "cpu", "CPU Temperature"),
-            WLANThermoSystemSensor(coordinator, "soc", "Battery"),
-            WLANThermoSystemSensor(coordinator, "rssi", "WiFi Signal"),
-        ]
-    )
+        # Add channel temperature sensors
+        if "channel" in coordinator.data:
+            for idx, channel in enumerate(coordinator.data["channel"]):
+                entities.append(WLANThermoTemperatureSensor(coordinator, idx))
 
-    # Add Pitmaster sensors
-    if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
-        for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
-            entities.append(WLANThermoPitmasterValueSensor(coordinator, idx))
+        # Add system sensors
+        entities.extend(
+            [
+                WLANThermoSystemSensor(coordinator, "cpu", "CPU Temperature"),
+                WLANThermoSystemSensor(coordinator, "soc", "Battery"),
+                WLANThermoSystemSensor(coordinator, "rssi", "WiFi Signal"),
+            ]
+        )
 
-    async_add_entities(entities)
+        # Add Pitmaster sensors
+        if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
+            for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
+                entities.append(WLANThermoPitmasterValueSensor(coordinator, idx))
+
+        async_add_entities(entities)
+
+    if coordinator.data:
+        _create_entities()
+    else:
+        # Wait for data
+        unsub = None
+        @callback
+        def _data_received():
+            """Handle first data."""
+            nonlocal unsub
+            if unsub:
+                unsub()
+                unsub = None
+            _create_entities()
+
+        unsub = coordinator.async_add_listener(_data_received)
 
 
 class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):

@@ -28,23 +28,43 @@ async def async_setup_entry(
 
     entities: list[NumberEntity] = []
 
-    # Wait for first data
-    if not coordinator.data:
-        return
+    @callback
+    def _create_entities():
+        """Create entities when data is available."""
+        if not coordinator.data:
+            return
 
-    # Add alarm temperature numbers for each channel
-    if "channel" in coordinator.data:
-        for idx, channel in enumerate(coordinator.data["channel"]):
-            entities.append(WLANThermoAlarmMinNumber(coordinator, idx))
-            entities.append(WLANThermoAlarmMaxNumber(coordinator, idx))
+        entities: list[NumberEntity] = []
 
-    # Add pitmaster set temperature and manual value
-    if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
-        for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
-            entities.append(WLANThermoPitmasterSetTempNumber(coordinator, idx))
-            entities.append(WLANThermoPitmasterManualValueNumber(coordinator, idx))
+        # Add alarm temperature numbers for each channel
+        if "channel" in coordinator.data:
+            for idx, channel in enumerate(coordinator.data["channel"]):
+                entities.append(WLANThermoAlarmMinNumber(coordinator, idx))
+                entities.append(WLANThermoAlarmMaxNumber(coordinator, idx))
 
-    async_add_entities(entities)
+        # Add pitmaster set temperature and manual value
+        if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
+            for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
+                entities.append(WLANThermoPitmasterSetTempNumber(coordinator, idx))
+                entities.append(WLANThermoPitmasterManualValueNumber(coordinator, idx))
+
+        async_add_entities(entities)
+
+    if coordinator.data:
+        _create_entities()
+    else:
+        # Wait for data
+        unsub = None
+        @callback
+        def _data_received():
+            """Handle first data."""
+            nonlocal unsub
+            if unsub:
+                unsub()
+                unsub = None
+            _create_entities()
+
+        unsub = coordinator.async_add_listener(_data_received)
 
 
 class WLANThermoAlarmMinNumber(CoordinatorEntity, NumberEntity):

@@ -27,16 +27,36 @@ async def async_setup_entry(
 
     entities: list[TextEntity] = []
 
-    # Wait for first data
-    if not coordinator.data:
-        return
+    @callback
+    def _create_entities():
+        """Create entities when data is available."""
+        if not coordinator.data:
+            return
 
-    # Add channel name text entities
-    if "channel" in coordinator.data:
-        for idx, channel in enumerate(coordinator.data["channel"]):
-            entities.append(WLANThermoChannelNameText(coordinator, idx))
+        entities: list[TextEntity] = []
 
-    async_add_entities(entities)
+        # Add channel name text entities
+        if "channel" in coordinator.data:
+            for idx, channel in enumerate(coordinator.data["channel"]):
+                entities.append(WLANThermoChannelNameText(coordinator, idx))
+
+        async_add_entities(entities)
+
+    if coordinator.data:
+        _create_entities()
+    else:
+        # Wait for data
+        unsub = None
+        @callback
+        def _data_received():
+            """Handle first data."""
+            nonlocal unsub
+            if unsub:
+                unsub()
+                unsub = None
+            _create_entities()
+
+        unsub = coordinator.async_add_listener(_data_received)
 
 
 class WLANThermoChannelNameText(CoordinatorEntity, TextEntity):

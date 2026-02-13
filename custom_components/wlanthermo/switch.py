@@ -28,30 +28,50 @@ async def async_setup_entry(
 
     entities: list[SwitchEntity] = []
 
-    # Wait for first data
-    if not coordinator.data:
-        return
+    @callback
+    def _create_entities():
+        """Create entities when data is available."""
+        if not coordinator.data:
+            return
 
-    # Add switches for each channel
-    if "channel" in coordinator.data:
-        for idx, channel in enumerate(coordinator.data["channel"]):
-            # Alarm (Piepser) Switch
-            entities.append(WLANThermoChannelAlarmSwitch(coordinator, idx))
-            # Push (Notify) Switch - Assuming key 'notify' or 'push' based on common APIs
-            # We try 'color' change to test connection? No.
-            # Let's assume there is no explicit enable switch anymore, but Alarm/Push switches.
-            # Based on user request "Push und Pieps Alarm".
-            # The API documentation mentions "alarm": true/false. This is likely the "Piepser".
-            # There is no documented "push" field in the standard API doc, but the WebUI has it.
-            # It might be stored locally on the device or handled via a different key.
-            # We will try 'notify' as key, if requested. 
-            # EDIT: We will implement it with key 'notify' (guess) but label it clearly.
-            # If it doesn't work, user will report. 
-            # Actually, looking at other projects, "alarm" is the buzzer.
-            # "notify" is often used for Push.
-            pass
+        entities: list[SwitchEntity] = []
 
-    async_add_entities(entities)
+        # Add switches for each channel
+        if "channel" in coordinator.data:
+            for idx, channel in enumerate(coordinator.data["channel"]):
+                # Alarm (Piepser) Switch
+                entities.append(WLANThermoChannelAlarmSwitch(coordinator, idx))
+                # Push (Notify) Switch - Assuming key 'notify' or 'push' based on common APIs
+                # We try 'color' change to test connection? No.
+                # Let's assume there is no explicit enable switch anymore, but Alarm/Push switches.
+                # Based on user request "Push und Pieps Alarm".
+                # The API documentation mentions "alarm": true/false. This is likely the "Piepser".
+                # There is no documented "push" field in the standard API doc, but the WebUI has it.
+                # It might be stored locally on the device or handled via a different key.
+                # We will try 'notify' as key, if requested. 
+                # EDIT: We will implement it with key 'notify' (guess) but label it clearly.
+                # If it doesn't work, user will report. 
+                # Actually, looking at other projects, "alarm" is the buzzer.
+                # "notify" is often used for Push.
+                pass
+
+        async_add_entities(entities)
+
+    if coordinator.data:
+        _create_entities()
+    else:
+        # Wait for data
+        unsub = None
+        @callback
+        def _data_received():
+            """Handle first data."""
+            nonlocal unsub
+            if unsub:
+                unsub()
+                unsub = None
+            _create_entities()
+
+        unsub = coordinator.async_add_listener(_data_received)
 
 
 class WLANThermoChannelAlarmSwitch(CoordinatorEntity, SwitchEntity):
