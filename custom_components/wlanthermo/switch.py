@@ -37,10 +37,11 @@ async def async_setup_entry(
         entities: list[SwitchEntity] = []
 
         # Add switches for each channel
-        if "channel" in coordinator.data:
-            for idx, channel in enumerate(coordinator.data["channel"]):
-                # Alarm (Piepser) Switch
-                entities.append(WLANThermoChannelAlarmSwitch(coordinator, idx))
+        # Add switches for each channel
+        # Deprecated: Alarm is now a Select entity (v1.10.0)
+        # if "channel" in coordinator.data:
+        #    for idx, channel in enumerate(coordinator.data["channel"]):
+        #        entities.append(WLANThermoChannelAlarmSwitch(coordinator, idx))
                 # Push (Notify) Switch - Assuming key 'notify' or 'push' based on common APIs
                 # We try 'color' change to test connection? No.
                 # Let's assume there is no explicit enable switch anymore, but Alarm/Push switches.

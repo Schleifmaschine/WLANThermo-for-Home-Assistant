@@ -35,6 +35,10 @@ async def async_setup_entry(
 
         entities: list[SelectEntity] = []
 
+        if "channel" in coordinator.data:
+            for idx, channel in enumerate(coordinator.data["channel"]):
+                entities.append(WLANThermoChannelAlarmSelect(coordinator, idx))
+
         if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
             for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
                 entities.append(WLANThermoPitmasterModeSelect(coordinator, idx))
