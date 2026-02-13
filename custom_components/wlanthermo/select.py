@@ -25,18 +25,36 @@ async def async_setup_entry(
     """Set up WLANThermo select entities from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
 
-    entities: list[SelectEntity] = []
+    @callback
+    def _create_entities():
+        """Create entities when data is available."""
+        if not coordinator.data:
+            return
 
-    # Wait for first data
-    if not coordinator.data:
-        return
+        entities: list[SelectEntity] = []
 
-    if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
-        for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
-            entities.append(WLANThermoPitmasterModeSelect(coordinator, idx))
-            entities.append(WLANThermoPitmasterChannelSelect(coordinator, idx))
+        if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
+            for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
+                entities.append(WLANThermoPitmasterModeSelect(coordinator, idx))
+                entities.append(WLANThermoPitmasterChannelSelect(coordinator, idx))
 
-    async_add_entities(entities)
+        async_add_entities(entities)
+
+    if coordinator.data:
+        _create_entities()
+    else:
+        # Wait for data
+        unsub = None
+        @callback
+        def _data_received():
+            """Handle first data."""
+            nonlocal unsub
+            if unsub:
+                unsub()
+                unsub = None
+            _create_entities()
+
+        unsub = coordinator.async_add_listener(_data_received)
 
 
 class WLANThermoPitmasterModeSelect(CoordinatorEntity, SelectEntity):
