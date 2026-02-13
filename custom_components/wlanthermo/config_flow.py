@@ -65,12 +65,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> OptionsFlow:
-        """Get the options flow for this handler."""
-        return OptionsFlow(config_entry)
+    ) -> config_entries.OptionsFlow:
+        """Create the options flow."""
+        return WLANThermoOptionsFlowHandler(config_entry)
 
 
-class OptionsFlow(config_entries.OptionsFlow):
+class WLANThermoOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for WLANThermo."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
@@ -85,15 +85,18 @@ class OptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         try:
-            # Use options if set, otherwise fallback to data, then defaults
-            current_name = self.config_entry.options.get(
-                CONF_DEVICE_NAME,
-                self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME)
-            )
-            current_topic = self.config_entry.options.get(
-                CONF_TOPIC_PREFIX,
-                self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX)
-            )
+            # Safe retrieval of values
+            current_name = self.config_entry.options.get(CONF_DEVICE_NAME)
+            if current_name is None:
+                 current_name = self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME)
+            
+            current_topic = self.config_entry.options.get(CONF_TOPIC_PREFIX)
+            if current_topic is None:
+                current_topic = self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX)
+
+            # Ensure they are strings
+            current_name = str(current_name)
+            current_topic = str(current_topic)
 
             schema = vol.Schema(
                 {

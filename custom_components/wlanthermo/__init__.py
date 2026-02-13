@@ -1,6 +1,7 @@
 """The WLANThermo integration."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -43,6 +44,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinator
     coordinator = WLANThermoDataCoordinator(hass, device_name, topic_prefix)
 
+    hass.data[DOMAIN][entry.entry_id] = {
+        DATA_COORDINATOR: coordinator,
+        DATA_MQTT_UNSUBSCRIBE: [],
+    }
+
+    # Future for waiting for first data
+    first_data_event = asyncio.Event()
+
     # Subscribe to MQTT topics
     @callback
     def message_received_data(msg):
@@ -50,6 +59,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             payload = json.loads(msg.payload)
             coordinator.async_set_data(payload)
+            if not first_data_event.is_set():
+                first_data_event.set()
+                _LOGGER.debug("First data received, unblocking setup")
             _LOGGER.debug("Received data: %s", payload)
         except json.JSONDecodeError:
             _LOGGER.error("Failed to decode MQTT payload: %s", msg.payload)
@@ -65,22 +77,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Failed to decode MQTT payload: %s", msg.payload)
 
     # Subscribe to topics
-    unsubscribe_data = await mqtt.async_subscribe(
+    sub_data = await mqtt.async_subscribe(
         hass, f"{topic_prefix}/{TOPIC_STATUS_DATA}", message_received_data, 0
     )
-    unsubscribe_settings = await mqtt.async_subscribe(
+    sub_settings = await mqtt.async_subscribe(
         hass, f"{topic_prefix}/{TOPIC_STATUS_SETTINGS}", message_received_settings, 0
     )
+    
+    hass.data[DOMAIN][entry.entry_id][DATA_MQTT_UNSUBSCRIBE] = [sub_data, sub_settings]
 
-    hass.data[DOMAIN][entry.entry_id] = {
-        DATA_COORDINATOR: coordinator,
-        DATA_MQTT_UNSUBSCRIBE: [unsubscribe_data, unsubscribe_settings],
-    }
-
-    # Forward entry setup to platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Wait for first data with timeout (to avoid hanging forever)
+    # If we have data, we proceed. If not, we might proceed with empty data 
+    # but the platforms need to handle it.
+    # ideally we want to show it as "loaded" but maybe unavailable entities.
+    
+    # We create a task to forward setup once data is received
+    entry.async_create_background_task(
+        hass, 
+        _async_finish_startup(hass, entry, first_data_event),
+        "wlanthermo_finish_startup"
+    )
 
     return True
+
+async def _async_finish_startup(hass: HomeAssistant, entry: ConfigEntry, event: asyncio.Event):
+    """Wait for data and then load platforms."""
+    try:
+        # Wait up to 10 seconds for data
+        await asyncio.wait_for(event.wait(), timeout=10)
+    except asyncio.TimeoutError:
+        _LOGGER.warning("Timed out waiting for initial data from WLANThermo. Entites might be missing until data is received.")
+    
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -88,10 +116,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Unload platforms
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         # Unsubscribe from MQTT
-        for unsubscribe in hass.data[DOMAIN][entry.entry_id][DATA_MQTT_UNSUBSCRIBE]:
-            unsubscribe()
-
-        hass.data[DOMAIN].pop(entry.entry_id)
+        if entry.entry_id in hass.data[DOMAIN]:
+             for unsubscribe in hass.data[DOMAIN][entry.entry_id].get(DATA_MQTT_UNSUBSCRIBE, []):
+                unsubscribe()
+             hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
 
@@ -131,6 +159,6 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
             identifiers={(DOMAIN, self.topic_prefix)},
             name=self.device_name,
             manufacturer="WLANThermo",
-            model=self.data.get("system", {}).get("hw_version", "Unknown"),
-            sw_version=self.data.get("system", {}).get("sw_version", "Unknown"),
+            model=self.data.get("system", {}).get("hw_version", "WLANThermo Device"),
+            sw_version=self.data.get("system", {}).get("sw_version"),
         )
