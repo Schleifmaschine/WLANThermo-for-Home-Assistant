@@ -48,14 +48,14 @@ async def async_setup_entry(
 
         entities: list[SensorEntity] = []
 
-        # Add system sensors first to ensure Main Device is created
-        entities.extend(
-            [
-                WLANThermoSystemSensor(coordinator, "cpu", "CPU Temperature"),
-                WLANThermoSystemSensor(coordinator, "soc", "Battery"),
-                WLANThermoSystemSensor(coordinator, "rssi", "WiFi Signal"),
-            ]
-        )
+        if "system" in coordinator.data:
+            sys_data = coordinator.data["system"]
+            if "cpu" in sys_data:
+                entities.append(WLANThermoSystemSensor(coordinator, "cpu", "CPU Temperature"))
+            if "soc" in sys_data:
+                 entities.append(WLANThermoSystemSensor(coordinator, "soc", "Battery"))
+            if "rssi" in sys_data:
+                 entities.append(WLANThermoSystemSensor(coordinator, "rssi", "WiFi Signal"))
 
         # Add channel temperature sensors
         if "channel" in coordinator.data:
