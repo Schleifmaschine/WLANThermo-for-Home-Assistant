@@ -8,6 +8,7 @@ from homeassistant.components import mqtt
 from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -62,9 +63,15 @@ class WLANThermoChannelNameText(CoordinatorEntity, TextEntity):
         return self._get_channel_data().get("name")
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return self.coordinator.device_info
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_channel_{self._channel_idx}")},
+            name=f"{self.coordinator.device_name} Channel {self._channel_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Channel Sensor",
+        )
 
     async def async_set_value(self, value: str) -> None:
         """Update the current value."""

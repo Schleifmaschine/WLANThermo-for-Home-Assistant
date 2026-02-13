@@ -13,6 +13,7 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -115,9 +116,18 @@ class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return self.coordinator.device_info
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_channel_{self._channel_idx}")},
+            name=f"{self.coordinator.device_name} Channel {self._channel_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Channel Sensor",
+            sw_version=self.coordinator.data.get("system", {}).get("sw_version", "Unknown"),
+            configuration_url=f"http://{self.coordinator.data.get('system', {}).get('ip', '')}" 
+            if self.coordinator.data.get("system", {}).get("ip") else None,
+        )
 
     def _get_channel_data(self) -> dict:
         """Get channel data from coordinator."""
