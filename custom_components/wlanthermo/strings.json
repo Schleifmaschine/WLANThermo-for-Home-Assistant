@@ -1,0 +1,32 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "WLANThermo einrichten",
+                "description": "Konfiguriere dein WLANThermo-Gerät",
+                "data": {
+                    "device_name": "Gerätename",
+                    "topic_prefix": "MQTT Topic-Präfix"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Verbindung fehlgeschlagen",
+            "unknown": "Unbekannter Fehler"
+        },
+        "abort": {
+            "already_configured": "Gerät ist bereits konfiguriert"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "WLANThermo Optionen",
+                "data": {
+                    "device_name": "Gerätename",
+                    "topic_prefix": "MQTT Topic-Präfix"
+                }
+            }
+        }
+    }
+}

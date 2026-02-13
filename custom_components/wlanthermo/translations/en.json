@@ -1,0 +1,37 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Set up WLANThermo",
+                "description": "Configure your WLANThermo device",
+                "data": {
+                    "device_name": "Device Name",
+                    "topic_prefix": "MQTT Topic Prefix"
+                },
+                "data_description": {
+                    "device_name": "The name that will be displayed in Home Assistant",
+                    "topic_prefix": "The MQTT topic prefix of your WLANThermo (e.g. WLanThermo/MINI-V3)"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to MQTT broker",
+            "unknown": "An unknown error occurred"
+        },
+        "abort": {
+            "already_configured": "This device is already configured"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "WLANThermo Options",
+                "description": "Adjust your WLANThermo settings",
+                "data": {
+                    "device_name": "Device Name",
+                    "topic_prefix": "MQTT Topic Prefix"
+                }
+            }
+        }
+    }
+}
