@@ -240,9 +240,9 @@ class WLANThermoPitmasterSetTempNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        payload = {"id": self._pm_idx + 1, "set": int(value)}
+        payload = {"id": self._pm_idx, "set": int(value)}
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
-        _LOGGER.debug(f"Setting Pitmaster {self._pm_idx + 1} Set Temp to {value} on topic {topic}")
+        _LOGGER.debug(f"Setting Pitmaster {self._pm_idx} Set Temp to {value} on topic {topic}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
         
         # Optimistic update
@@ -303,11 +303,11 @@ class WLANThermoPitmasterManualValueNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        # Payload for manual value (assuming key 'value' from common practice)
-        # 1-based ID!
-        payload = {"id": self._pm_idx + 1, "value": int(value)}
+        # Payload for manual value (should target 'set' not 'value' according to API patterns)
+        # ID is 0-based
+        payload = {"id": self._pm_idx, "set": int(value)}
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
-        _LOGGER.debug(f"Setting Pitmaster {self._pm_idx + 1} Manual Value to {value} on topic {topic}")
+        _LOGGER.debug(f"Writing Pitmaster {self._pm_idx} Manual Value (Set) to {value}. Topic: {topic}, Payload: {payload}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
         
         # Optimistic update (might be overwritten by next status update)

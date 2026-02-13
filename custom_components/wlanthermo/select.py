@@ -96,9 +96,9 @@ class WLANThermoPitmasterModeSelect(CoordinatorEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        payload = {"id": self._pm_idx + 1, "typ": option}
+        payload = {"id": self._pm_idx, "typ": option}
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
-        _LOGGER.debug(f"Writing Pitmaster {self._pm_idx + 1} Mode to {option}. Topic: {topic}, Payload: {payload}")
+        _LOGGER.debug(f"Writing Pitmaster {self._pm_idx} Mode to {option}. Topic: {topic}, Payload: {payload}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
         
         # Optimistic update
@@ -167,10 +167,10 @@ class WLANThermoPitmasterChannelSelect(CoordinatorEntity, SelectEntity):
             _LOGGER.error(f"Could not parse channel number from option: {option}")
             return
 
-        payload = {"id": self._pm_idx + 1, "channel": channel_num}
+        payload = {"id": self._pm_idx, "channel": channel_num}
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
         
-        _LOGGER.debug(f"Setting Pitmaster {self._pm_idx + 1} Channel to {channel_num} ({option}) on topic {topic}")
+        _LOGGER.debug(f"Setting Pitmaster {self._pm_idx} Channel to {channel_num} ({option}) on topic {topic}")
         # Note: If API requires array for Pitmaster, this single object might fail. 
         # But we agreed to try single object first as per v1.1.5 strategy.
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
