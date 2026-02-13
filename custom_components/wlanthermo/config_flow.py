@@ -84,34 +84,28 @@ class WLANThermoOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # Simplified retrieval to avoid potential issues
-        # Defaults
-        default_name = DEFAULT_NAME
-        default_topic = DEFAULT_TOPIC_PREFIX
-        
         try:
-            # We access defaults directly from data if available, as options might be empty
-            # Use data as primary source for defaults if options are not set
-            if self.config_entry.options:
-                default_name = self.config_entry.options.get(CONF_DEVICE_NAME, 
-                                                             self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME))
-                default_topic = self.config_entry.options.get(CONF_TOPIC_PREFIX, 
-                                                              self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX))
-            else:
-                 default_name = self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME)
-                 default_topic = self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX)
-        except Exception as e:
-            _LOGGER.error("Failed to load options defaults: %s", e)
-            # Fallback to hardcoded defaults in worst case
+            # Defaults
             default_name = DEFAULT_NAME
             default_topic = DEFAULT_TOPIC_PREFIX
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(CONF_DEVICE_NAME, default=str(default_name)): cv.string,
-                    vol.Optional(CONF_TOPIC_PREFIX, default=str(default_topic)): cv.string,
-                }
-            ),
-        )
+            
+            # Safely get current values
+            # Prioritize options, fallback to data, fallback to defaults
+            data = self.config_entry.data
+            options = self.config_entry.options
+            
+            current_name = options.get(CONF_DEVICE_NAME, data.get(CONF_DEVICE_NAME, default_name))
+            current_topic = options.get(CONF_TOPIC_PREFIX, data.get(CONF_TOPIC_PREFIX, default_topic))
+            
+            return self.async_show_form(
+                step_id="init",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(CONF_DEVICE_NAME, default=current_name): cv.string,
+                        vol.Optional(CONF_TOPIC_PREFIX, default=current_topic): cv.string,
+                    }
+                ),
+            )
+        except Exception as e:
+            _LOGGER.exception("Error in options flow init: %s", e)
+            return self.async_abort(reason="unknown_error")
