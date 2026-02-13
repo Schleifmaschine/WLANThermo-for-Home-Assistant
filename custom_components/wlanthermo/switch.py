@@ -39,9 +39,9 @@ async def async_setup_entry(
         # Switch platform is deprecated as of v1.11.0
         # Alarm is now a Select entity.
         # Push is part of Alarm Select.
-        # Keeping file for now but returning empty list.
+        # Functionality moved to select.py
         
-        async_add_entities(entities)
+        async_add_entities([])
 
     if coordinator.data:
         _create_entities()
