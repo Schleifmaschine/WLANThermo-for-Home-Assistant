@@ -75,7 +75,7 @@ class WLANThermoOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        self.entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -91,8 +91,8 @@ class WLANThermoOptionsFlowHandler(config_entries.OptionsFlow):
             
             # Safely get current values
             # Prioritize options, fallback to data, fallback to defaults
-            data = self.config_entry.data or {}
-            options = self.config_entry.options or {}
+            data = self.entry.data or {}
+            options = self.entry.options or {}
             
             current_name = options.get(CONF_DEVICE_NAME, data.get(CONF_DEVICE_NAME, default_name))
             current_topic = options.get(CONF_TOPIC_PREFIX, data.get(CONF_TOPIC_PREFIX, default_topic))
