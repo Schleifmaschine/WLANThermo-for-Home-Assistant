@@ -353,3 +353,179 @@ class WLANThermoPitmasterProfileSelect(CoordinatorEntity, SelectEntity):
         if self._pm_idx < len(pms):
             return pms[self._pm_idx]
         return {}
+
+
+class WLANThermoChannelAlarmSelect(CoordinatorEntity, SelectEntity):
+    """Representation of a WLANThermo Channel Alarm select."""
+
+    _attr_icon = "mdi:alert"
+    
+    # Options mapping
+    _OPTIONS_MAP = {
+        0: "Off",
+        1: "Push",
+        2: "Beeper",
+        3: "Both"
+    }
+    _REVERSE_MAP = {v: k for k, v in _OPTIONS_MAP.items()}
+    
+    _attr_options = list(_OPTIONS_MAP.values())
+
+    def __init__(self, coordinator, channel_idx: int) -> None:
+        """Initialize the select."""
+        super().__init__(coordinator)
+        self._channel_idx = channel_idx
+        self._attr_unique_id = (
+            f"{coordinator.topic_prefix}_channel_{channel_idx}_alarm_mode"
+        )
+        self._attr_name = f"{coordinator.device_name} Channel {channel_idx + 1} Alarm Mode"
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the selected entity option."""
+        # API returns integer 0-3
+        alarm_val = self._get_channel_data().get("alarm", 0)
+        return self._OPTIONS_MAP.get(alarm_val, "Off")
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_channel_{self._channel_idx}")},
+            name=f"{self.coordinator.device_name} Channel {self._channel_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Channel Sensor",
+        )
+
+    async def async_select_option(self, option: str) -> None:
+        """Change the selected option."""
+        alarm_val = self._REVERSE_MAP.get(option)
+        if alarm_val is None:
+            return
+
+        # Construct payload
+        payload = {
+            "number": self._channel_idx + 1,
+            "alarm": alarm_val
+        }
+        
+        # Use literal "set/channels" to avoid import issues if const is missing it
+        topic = f"{self.coordinator.topic_prefix}/set/channels"
+        
+        _LOGGER.debug(f"Setting Channel {self._channel_idx + 1} Alarm to {alarm_val} ({option}). Payload: {payload}")
+        await mqtt.async_publish(self.hass, topic, json.dumps(payload))
+        
+        # Optimistic update
+        self.coordinator.data["channel"][self._channel_idx]["alarm"] = alarm_val
+        self.async_write_ha_state()
+
+    def _get_channel_data(self) -> dict:
+        """Get channel data."""
+        if not self.coordinator.data or "channel" not in self.coordinator.data:
+            return {}
+        channels = self.coordinator.data["channel"]
+        if self._channel_idx < len(channels):
+            return channels[self._channel_idx]
+        return {}
+
+
+class WLANThermoChannelSensorTypeSelect(CoordinatorEntity, SelectEntity):
+    """Representation of a WLANThermo Channel Sensor Type select."""
+
+    _attr_icon = "mdi:thermometer-cog"
+
+    def __init__(self, coordinator, channel_idx: int) -> None:
+        """Initialize the select."""
+        super().__init__(coordinator)
+        self._channel_idx = channel_idx
+        self._attr_unique_id = (
+            f"{coordinator.topic_prefix}_channel_{channel_idx}_sensor_type"
+        )
+        self._attr_name = f"{coordinator.device_name} Channel {channel_idx + 1} Sensor Type"
+
+    @property
+    def options(self) -> list[str]:
+        """Return a set of selectable options."""
+        # Get sensors from settings. 
+        # Note: In v1.11.0 we added logic to __init__.py to merge "sensors" into coordinator.data["sensors"]
+        sensors = self.coordinator.data.get("sensors", [])
+        if sensors:
+            return [s.get("name", f"Type {s.get('type')}") for s in sensors]
+        
+        # Fallback if no sensor definitions found
+        return [f"Type {i}" for i in range(20)]
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the selected entity option."""
+        # Channel data has "typ": 0
+        typ_idx = self._get_channel_data().get("typ")
+        if typ_idx is None:
+            return None
+            
+        # Find name for this type index
+        sensors = self.coordinator.data.get("sensors", [])
+        for s in sensors:
+            if s.get("type") == typ_idx:
+                return s.get("name")
+        
+        return f"Type {typ_idx}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_channel_{self._channel_idx}")},
+            name=f"{self.coordinator.device_name} Channel {self._channel_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Channel Sensor",
+        )
+
+    async def async_select_option(self, option: str) -> None:
+        """Change the selected option."""
+        typ_val = None
+        
+        # Find ID from name
+        sensors = self.coordinator.data.get("sensors", [])
+        for s in sensors:
+            if s.get("name") == option:
+                typ_val = s.get("type")
+                break
+        
+        if typ_val is None:
+             # Try parsing "Type X"
+            try:
+                if option.startswith("Type "):
+                    typ_val = int(option.split(" ")[1])
+            except (IndexError, ValueError):
+                pass
+
+        if typ_val is None:
+             _LOGGER.error(f"Could not determine Sensor Type ID for option: {option}")
+             return
+
+        # Payload: {"number": X, "typ": ID}
+        payload = {
+            "number": self._channel_idx + 1,
+            "typ": typ_val
+        }
+        
+        topic = f"{self.coordinator.topic_prefix}/set/channels"
+        
+        _LOGGER.debug(f"Setting Channel {self._channel_idx + 1} Sensor Type to {typ_val} ({option}). Payload: {payload}")
+        await mqtt.async_publish(self.hass, topic, json.dumps(payload))
+        
+        # Optimistic update
+        self.coordinator.data["channel"][self._channel_idx]["typ"] = typ_val
+        self.async_write_ha_state()
+
+    def _get_channel_data(self) -> dict:
+        """Get channel data."""
+        if not self.coordinator.data or "channel" not in self.coordinator.data:
+            return {}
+        channels = self.coordinator.data["channel"]
+        if self._channel_idx < len(channels):
+            return channels[self._channel_idx]
+        return {}
