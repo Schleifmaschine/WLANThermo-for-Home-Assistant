@@ -36,26 +36,11 @@ async def async_setup_entry(
 
         entities: list[SwitchEntity] = []
 
-        # Add switches for each channel
-        # Add switches for each channel
-        # Deprecated: Alarm is now a Select entity (v1.10.0)
-        # if "channel" in coordinator.data:
-        #    for idx, channel in enumerate(coordinator.data["channel"]):
-        #        entities.append(WLANThermoChannelAlarmSwitch(coordinator, idx))
-                # Push (Notify) Switch - Assuming key 'notify' or 'push' based on common APIs
-                # We try 'color' change to test connection? No.
-                # Let's assume there is no explicit enable switch anymore, but Alarm/Push switches.
-                # Based on user request "Push und Pieps Alarm".
-                # The API documentation mentions "alarm": true/false. This is likely the "Piepser".
-                # There is no documented "push" field in the standard API doc, but the WebUI has it.
-                # It might be stored locally on the device or handled via a different key.
-                # We will try 'notify' as key, if requested. 
-                # EDIT: We will implement it with key 'notify' (guess) but label it clearly.
-                # If it doesn't work, user will report. 
-                # Actually, looking at other projects, "alarm" is the buzzer.
-                # "notify" is often used for Push.
-                pass
-
+        # Switch platform is deprecated as of v1.11.0
+        # Alarm is now a Select entity.
+        # Push is part of Alarm Select.
+        # Keeping file for now but returning empty list.
+        
         async_add_entities(entities)
 
     if coordinator.data:
