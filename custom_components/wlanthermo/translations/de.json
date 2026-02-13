@@ -61,6 +61,9 @@
         "number": {
             "pitmaster_set": {
                 "name": "Zieltemperatur"
+            },
+            "pitmaster_manual": {
+                "name": "Manueller Wert"
             }
         },
         "text": {

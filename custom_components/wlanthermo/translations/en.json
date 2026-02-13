@@ -61,6 +61,9 @@
         "number": {
             "pitmaster_set": {
                 "name": "Set Temperature"
+            },
+            "pitmaster_manual": {
+                "name": "Manual Value"
             }
         },
         "text": {
