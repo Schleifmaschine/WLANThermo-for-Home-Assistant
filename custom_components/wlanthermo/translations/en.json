@@ -70,7 +70,7 @@
         },
         "switch": {
             "alarm": {
-                "name": "Alarm (Buzzer)"
+                "name": "Push Notification"
             }
         }
     }

@@ -64,12 +64,12 @@ class WLANThermoChannelAlarmSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = (
             f"{coordinator.topic_prefix}_channel_{channel_idx}_alarm"
         )
-        self._attr_icon = "mdi:alarm-bell"
+        self._attr_icon = "mdi:bell-ring"
 
     @property
     def name(self) -> str:
         """Return the name of the switch."""
-        return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} Alarm (Piepser)"
+        return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} Push Notification"
 
     @property
     def is_on(self) -> bool | None:
