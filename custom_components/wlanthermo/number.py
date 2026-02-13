@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DATA_COORDINATOR, DOMAIN, TOPIC_SET_CHANNELS
+from .const import DATA_COORDINATOR, DOMAIN, TOPIC_SET_CHANNELS, TOPIC_SET_PITMASTER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,6 +36,11 @@ async def async_setup_entry(
         for idx, channel in enumerate(coordinator.data["channel"]):
             entities.append(WLANThermoAlarmMinNumber(coordinator, idx))
             entities.append(WLANThermoAlarmMaxNumber(coordinator, idx))
+
+    # Add pitmaster set temperature
+    if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
+        for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
+            entities.append(WLANThermoPitmasterSetTempNumber(coordinator, idx))
 
     async_add_entities(entities)
 
@@ -151,4 +156,59 @@ class WLANThermoAlarmMaxNumber(CoordinatorEntity, NumberEntity):
         channels = self.coordinator.data["channel"]
         if self._channel_idx < len(channels):
             return channels[self._channel_idx].copy()
+        return {}
+
+
+class WLANThermoPitmasterSetTempNumber(CoordinatorEntity, NumberEntity):
+    """Representation of a WLANThermo Pitmaster Set Temperature."""
+
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_mode = NumberMode.BOX
+    _attr_native_min_value = 0
+    _attr_native_max_value = 300 # Depends on pitmaster type?
+    _attr_native_step = 1
+
+    def __init__(self, coordinator, pm_idx: int) -> None:
+        """Initialize the number entity."""
+        super().__init__(coordinator)
+        self._pm_idx = pm_idx
+        self._attr_unique_id = (
+            f"{coordinator.topic_prefix}_pitmaster_{pm_idx}_set_temp"
+        )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the entity."""
+        return f"{self.coordinator.device_name} Pitmaster {self._pm_idx + 1} Set Temp"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current value."""
+        return self._get_pm_data().get("set")
+
+    @property
+    def device_info(self):
+        """Return device info."""
+        return self.coordinator.device_info
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Update the current value."""
+        # Payload structure depends on API.
+        # Often: {"id": 0, "set": 120}
+        
+        payload = {"id": self._pm_idx, "set": int(value)}
+        topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
+        await mqtt.async_publish(self.hass, topic, json.dumps(payload))
+        
+        # Optimistic update
+        self.coordinator.data["pitmaster"]["pm"][self._pm_idx]["set"] = int(value)
+        self.async_write_ha_state()
+
+    def _get_pm_data(self) -> dict:
+        """Get pitmaster data."""
+        if not self.coordinator.data or "pitmaster" not in self.coordinator.data:
+            return {}
+        pms = self.coordinator.data["pitmaster"].get("pm", [])
+        if self._pm_idx < len(pms):
+            return pms[self._pm_idx]
         return {}

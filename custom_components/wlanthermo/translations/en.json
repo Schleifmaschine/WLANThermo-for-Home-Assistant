@@ -33,5 +33,35 @@
                 }
             }
         }
+    },
+    "entity": {
+        "binary_sensor": {
+            "online": {
+                "name": "Online"
+            },
+            "charge": {
+                "name": "Charging"
+            }
+        },
+        "select": {
+            "mode": {
+                "name": "Mode",
+                "state": {
+                    "off": "Off",
+                    "manual": "Manual",
+                    "auto": "Auto"
+                }
+            }
+        },
+        "sensor": {
+            "pitmaster_value": {
+                "name": "Fan"
+            }
+        },
+        "number": {
+            "pitmaster_set": {
+                "name": "Set Temperature"
+            }
+        }
     }
 }

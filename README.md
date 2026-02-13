@@ -11,7 +11,8 @@ Eine vollständige Home Assistant Integration für WLANThermo-Geräte (Mini V3, 
 - 🌡️ **Temperatursensoren** für alle Kanäle
 - 🔔 **Alarm-Temperaturen** konfigurierbar
 - 🔌 **Kanal-Steuerung** (aktivieren/deaktivieren)
-- 📊 **System-Sensoren** (CPU-Temperatur, Batterie, WiFi-Signal)
+- 🔥 **Pitmaster-Steuerung** (Zieltemperatur, Modus, Lüfterwert)
+- 📊 **System-Sensoren** (CPU, Batterie, WiFi, Online-Status)
 - 🎨 **UI-Konfiguration** über Config Flow
 - 🌍 **Mehrsprachig** (Deutsch & Englisch)
 - 📱 **HACS-kompatibel** für einfache Installation

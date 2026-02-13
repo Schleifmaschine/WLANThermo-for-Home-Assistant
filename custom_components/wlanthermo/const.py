@@ -25,6 +25,12 @@ ATTR_ALARM_MAX = "alarm_max"
 ATTR_SENSOR_TYPE = "sensor_type"
 ATTR_COLOR = "color"
 ATTR_FIXED = "fixed"
+ATTR_PID = "pid"
+ATTR_SET_TEMP = "set_temp"
+ATTR_MODE = "mode"
+
+# Pitmaster Modes
+PITMASTER_MODES = ["manual", "auto", "off"]  # Example, needs verification
 
 # Data keys
 DATA_COORDINATOR = "coordinator"

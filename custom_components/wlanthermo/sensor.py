@@ -57,6 +57,12 @@ async def async_setup_entry(
         ]
     )
 
+    # Add Pitmaster sensors
+    if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
+        for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
+            entities.append(WLANThermoPitmasterValueSensor(coordinator, idx))
+            # Optional: Add assigned channel temp sensor if needed separate
+
     async_add_entities(entities)
 
 
@@ -99,7 +105,7 @@ class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):
         """Return the state attributes."""
         channel = self._get_channel_data()
         return {
-            ATTR_CHANNEL: self._channel_idx,
+            ATTR_CHANNEL: self._channel_idx + 1, # 1-based usually friendly
             ATTR_MIN_TEMP: channel.get("min"),
             ATTR_MAX_TEMP: channel.get("max"),
             ATTR_ALARM_MIN: channel.get("alarm_min"),
@@ -158,3 +164,48 @@ class WLANThermoSystemSensor(CoordinatorEntity, SensorEntity):
     def device_info(self):
         """Return device info."""
         return self.coordinator.device_info
+
+class WLANThermoPitmasterValueSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Pitmaster Value Sensor (%)."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    # Usually fan, but no official fan % sensor device class, maybe just generic
+
+    def __init__(self, coordinator, pm_idx: int) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._pm_idx = pm_idx
+        self._attr_unique_id = f"{coordinator.topic_prefix}_pitmaster_{pm_idx}_value"
+        self._attr_name = f"{coordinator.device_name} Pitmaster {pm_idx + 1} Value"
+        self._attr_icon = "mdi:fan"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return value."""
+        return self._get_pm_data().get("value")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Attributes."""
+        pm = self._get_pm_data()
+        return {
+            "pid": pm.get("pid"),
+            "set": pm.get("set"),
+            "typ": pm.get("typ"),
+            "channel": pm.get("channel"),
+        }
+
+    @property
+    def device_info(self):
+        """Return device info."""
+        return self.coordinator.device_info
+
+    def _get_pm_data(self) -> dict:
+        """Get pitmaster data."""
+        if not self.coordinator.data or "pitmaster" not in self.coordinator.data:
+            return {}
+        pms = self.coordinator.data["pitmaster"].get("pm", [])
+        if self._pm_idx < len(pms):
+            return pms[self._pm_idx]
+        return {}
