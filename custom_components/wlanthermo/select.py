@@ -84,15 +84,21 @@ class WLANThermoPitmasterModeSelect(CoordinatorEntity, SelectEntity):
         return None
         
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return self.coordinator.device_info
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_pitmaster_{self._pm_idx}")},
+            name=f"{self.coordinator.device_name} Pitmaster {self._pm_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Pitmaster",
+        )
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         payload = {"id": self._pm_idx + 1, "typ": option}
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
-        _LOGGER.debug(f"Setting Pitmaster {self._pm_idx + 1} Mode to {option} on topic {topic}")
+        _LOGGER.debug(f"Writing Pitmaster {self._pm_idx + 1} Mode to {option}. Topic: {topic}, Payload: {payload}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
         
         # Optimistic update
@@ -142,9 +148,15 @@ class WLANThermoPitmasterChannelSelect(CoordinatorEntity, SelectEntity):
         return None
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return self.coordinator.device_info
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_pitmaster_{self._pm_idx}")},
+            name=f"{self.coordinator.device_name} Pitmaster {self._pm_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Pitmaster",
+        )
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""

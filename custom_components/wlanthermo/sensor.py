@@ -226,9 +226,15 @@ class WLANThermoPitmasterValueSensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return self.coordinator.device_info
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.coordinator.topic_prefix}_pitmaster_{self._pm_idx}")},
+            name=f"{self.coordinator.device_name} Pitmaster {self._pm_idx + 1}",
+            via_device=(DOMAIN, self.coordinator.topic_prefix),
+            manufacturer="WLANThermo",
+            model="Pitmaster",
+        )
 
     def _get_pm_data(self) -> dict:
         """Get pitmaster data."""
