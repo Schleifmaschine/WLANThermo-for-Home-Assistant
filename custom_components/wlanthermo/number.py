@@ -8,7 +8,7 @@ from homeassistant.components import mqtt
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature, PERCENTAGE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -34,6 +34,7 @@ async def async_setup_entry(
         if not coordinator.data:
             return
 
+        _LOGGER.debug("Creating number entities. Data: %s", coordinator.data)
         entities: list[NumberEntity] = []
 
         # Add alarm temperature numbers for each channel
@@ -62,8 +63,10 @@ async def async_setup_entry(
             if unsub:
                 unsub()
                 unsub = None
+            _LOGGER.debug("Data received in number platform. Coordinator data: %s", coordinator.data)
             _create_entities()
 
+        _LOGGER.debug("Waiting for data in number platform...")
         unsub = coordinator.async_add_listener(_data_received)
 
 

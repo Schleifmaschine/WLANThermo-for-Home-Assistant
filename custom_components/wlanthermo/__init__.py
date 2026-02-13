@@ -37,6 +37,7 @@ PLATFORMS: list[Platform] = [
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WLANThermo from a config entry."""
+    _LOGGER.info("Starting WLANThermo Integration version 1.7.1")
     hass.data.setdefault(DOMAIN, {})
 
     device_name = entry.data[CONF_DEVICE_NAME]
