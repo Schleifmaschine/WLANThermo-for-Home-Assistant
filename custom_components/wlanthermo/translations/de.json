@@ -62,6 +62,16 @@
             "pitmaster_set": {
                 "name": "Zieltemperatur"
             }
+        },
+        "text": {
+            "channel_name": {
+                "name": "Kanalname"
+            }
+        },
+        "switch": {
+            "alarm": {
+                "name": "Alarm (Piepser)"
+            }
         }
     }
 }

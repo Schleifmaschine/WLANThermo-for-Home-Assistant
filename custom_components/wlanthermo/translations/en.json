@@ -62,6 +62,16 @@
             "pitmaster_set": {
                 "name": "Set Temperature"
             }
+        },
+        "text": {
+            "channel_name": {
+                "name": "Channel Name"
+            }
+        },
+        "switch": {
+            "alarm": {
+                "name": "Alarm (Buzzer)"
+            }
         }
     }
 }

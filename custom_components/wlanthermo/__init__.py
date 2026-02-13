@@ -28,9 +28,10 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.NUMBER,
-    Platform.SWITCH,
+    Platform.SWITCH,  # Re-enabled for Alarm Switch
     Platform.BINARY_SENSOR,
     Platform.SELECT,
+    Platform.TEXT,
 ]
 
 
