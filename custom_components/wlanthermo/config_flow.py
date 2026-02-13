@@ -52,7 +52,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data=user_input,
                 )
             except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
+                _LOGGER.exception("Unexpected exception in config flow")
                 errors["base"] = "unknown"
 
         return self.async_show_form(
@@ -84,22 +84,25 @@ class OptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(
+        try:
+            # Use options if set, otherwise fallback to data, then defaults
+            current_name = self.config_entry.options.get(
+                CONF_DEVICE_NAME,
+                self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME)
+            )
+            current_topic = self.config_entry.options.get(
+                CONF_TOPIC_PREFIX,
+                self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX)
+            )
+
+            schema = vol.Schema(
                 {
-                    vol.Optional(
-                        CONF_DEVICE_NAME,
-                        default=self.config_entry.data.get(
-                            CONF_DEVICE_NAME, DEFAULT_NAME
-                        ),
-                    ): cv.string,
-                    vol.Optional(
-                        CONF_TOPIC_PREFIX,
-                        default=self.config_entry.data.get(
-                            CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX
-                        ),
-                    ): cv.string,
+                    vol.Optional(CONF_DEVICE_NAME, default=current_name): cv.string,
+                    vol.Optional(CONF_TOPIC_PREFIX, default=current_topic): cv.string,
                 }
-            ),
-        )
+            )
+
+            return self.async_show_form(step_id="init", data_schema=schema)
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception in options flow")
+            return self.async_abort(reason="unknown")
