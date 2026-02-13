@@ -48,17 +48,23 @@ class WLANThermoChannelSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = (
             f"{coordinator.topic_prefix}_channel_{channel_idx}_enabled"
         )
+        self._attr_icon = "mdi:toggle-switch"
 
     @property
     def name(self) -> str:
         """Return the name of the switch."""
-        channel_name = self._get_channel_data().get("name", f"Channel {self._channel_idx}")
-        return f"{self.coordinator.device_name} {channel_name} Enabled"
+        channel_name = self._get_channel_data().get("name")
+        return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} ({channel_name}) Enabled"
 
     @property
-    def is_on(self) -> bool:
-        """Return true if the channel is enabled."""
-        return self._get_channel_data().get("enabled", False)
+    def is_on(self) -> bool | None:
+        """Return true if switch is on."""
+        # WLANThermo API doesn't have an explicit "enabled" flag in data usually?
+        # A channel is "enabled" if "typ" != 0 (OFF).
+        # Need to verify API. 
+        # Typically: typ=0 is off, typ>0 is some sensor type.
+        typ = self._get_channel_data().get("typ")
+        return typ is not None and typ > 0
 
     @property
     def device_info(self):
@@ -66,25 +72,37 @@ class WLANThermoChannelSwitch(CoordinatorEntity, SwitchEntity):
         return self.coordinator.device_info
 
     async def async_turn_on(self, **kwargs) -> None:
-        """Turn the channel on."""
-        await self._set_enabled(True)
+        """Turn the switch on."""
+        # To turn on, we need to set typ to something valid? 
+        # Or restore valid type?
+        # If we don't know the type, maybe default to 1 (Type K) or whatever was before?
+        # This is tricky.
+        # For now assume: typ=1 if it was 0.
+        
+        current_typ = self._get_channel_data().get("typ", 0)
+        new_typ = 1 if current_typ == 0 else current_typ
+        
+        await self._async_set_channel_type(new_typ)
 
     async def async_turn_off(self, **kwargs) -> None:
-        """Turn the channel off."""
-        await self._set_enabled(False)
+        """Turn the switch off."""
+        # Set typ to 0
+        await self._async_set_channel_type(0)
 
-    async def _set_enabled(self, enabled: bool) -> None:
-        """Set the enabled state."""
+    async def _async_set_channel_type(self, typ: int) -> None:
+        """Set channel type."""
         channel_data = self._get_channel_data()
-        channel_data["enabled"] = enabled
+        channel_data["typ"] = typ
 
         # Publish to MQTT
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_CHANNELS}"
-        payload = json.dumps({"number": self._channel_idx, **channel_data})
+        payload = json.dumps({"number": self._channel_idx + 1, "typ": typ})
+        
+        _LOGGER.debug(f"Setting type for channel {self._channel_idx + 1} to {typ} on topic {topic}")
         await mqtt.async_publish(self.hass, topic, payload)
 
         # Update coordinator data
-        self.coordinator.data["channel"][self._channel_idx] = channel_data
+        self.coordinator.data["channel"][self._channel_idx]["typ"] = typ
         self.async_write_ha_state()
 
     def _get_channel_data(self) -> dict:

@@ -65,8 +65,10 @@ class WLANThermoAlarmMinNumber(CoordinatorEntity, NumberEntity):
     @property
     def name(self) -> str:
         """Return the name of the entity."""
-        channel_name = self._get_channel_data().get("name", f"Channel {self._channel_idx}")
-        return f"{self.coordinator.device_name} {channel_name} Alarm Min"
+        channel_data = self._get_channel_data()
+        name = channel_data.get("name")
+        # Ensure unique name by including channel number
+        return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} Alarm Min ({name})"
 
     @property
     def native_value(self) -> float | None:
@@ -85,7 +87,11 @@ class WLANThermoAlarmMinNumber(CoordinatorEntity, NumberEntity):
 
         # Publish to MQTT
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_CHANNELS}"
-        payload = json.dumps({"number": self._channel_idx, **channel_data})
+        payload = json.dumps({"number": self._channel_idx + 1, **channel_data}) # API uses 1-based index usually? Need to check.
+        # Based on docs: "number": channel_number (1-8)
+        # correction: self._channel_idx is 0-based. So +1.
+        
+        _LOGGER.debug(f"Setting Alarm Min for channel {self._channel_idx + 1} to {value} on topic {topic}")
         await mqtt.async_publish(self.hass, topic, payload)
 
         # Update coordinator data
@@ -122,8 +128,9 @@ class WLANThermoAlarmMaxNumber(CoordinatorEntity, NumberEntity):
     @property
     def name(self) -> str:
         """Return the name of the entity."""
-        channel_name = self._get_channel_data().get("name", f"Channel {self._channel_idx}")
-        return f"{self.coordinator.device_name} {channel_name} Alarm Max"
+        channel_data = self._get_channel_data()
+        name = channel_data.get("name")
+        return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} Alarm Max ({name})"
 
     @property
     def native_value(self) -> float | None:
@@ -142,7 +149,10 @@ class WLANThermoAlarmMaxNumber(CoordinatorEntity, NumberEntity):
 
         # Publish to MQTT
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_CHANNELS}"
-        payload = json.dumps({"number": self._channel_idx, **channel_data})
+        # API expects 1-based channel number usually
+        payload = json.dumps({"number": self._channel_idx + 1, **channel_data})
+        
+        _LOGGER.debug(f"Setting Alarm Max for channel {self._channel_idx + 1} to {value} on topic {topic}")
         await mqtt.async_publish(self.hass, topic, payload)
 
         # Update coordinator data
@@ -165,7 +175,7 @@ class WLANThermoPitmasterSetTempNumber(CoordinatorEntity, NumberEntity):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0
-    _attr_native_max_value = 300 # Depends on pitmaster type?
+    _attr_native_max_value = 300 
     _attr_native_step = 1
 
     def __init__(self, coordinator, pm_idx: int) -> None:
@@ -193,11 +203,9 @@ class WLANThermoPitmasterSetTempNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        # Payload structure depends on API.
-        # Often: {"id": 0, "set": 120}
-        
         payload = {"id": self._pm_idx, "set": int(value)}
         topic = f"{self.coordinator.topic_prefix}/{TOPIC_SET_PITMASTER}"
+        _LOGGER.debug(f"Setting Pitmaster {self._pm_idx} Set Temp to {value} on topic {topic}")
         await mqtt.async_publish(self.hass, topic, json.dumps(payload))
         
         # Optimistic update

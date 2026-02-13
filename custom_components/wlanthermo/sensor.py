@@ -61,7 +61,6 @@ async def async_setup_entry(
     if "pitmaster" in coordinator.data and "pm" in coordinator.data["pitmaster"]:
         for idx, pm in enumerate(coordinator.data["pitmaster"]["pm"]):
             entities.append(WLANThermoPitmasterValueSensor(coordinator, idx))
-            # Optional: Add assigned channel temp sensor if needed separate
 
     async_add_entities(entities)
 
@@ -84,8 +83,8 @@ class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        channel_name = self._get_channel_data().get("name", f"Channel {self._channel_idx}")
-        return f"{self.coordinator.device_name} {channel_name}"
+        channel_name = self._get_channel_data().get("name")
+        return f"{self.coordinator.device_name} Channel {self._channel_idx + 1} ({channel_name})"
 
     @property
     def native_value(self) -> float | None:
@@ -98,6 +97,9 @@ class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
+        # Available if temp is not 999. Or should we show "Unavailable" state?
+        # In HA "available=False" means Unavailable.
+        # But for wlanthermo 999 means just "no probe".
         return self._get_channel_data().get("temp") != 999
 
     @property
@@ -105,7 +107,7 @@ class WLANThermoTemperatureSensor(CoordinatorEntity, SensorEntity):
         """Return the state attributes."""
         channel = self._get_channel_data()
         return {
-            ATTR_CHANNEL: self._channel_idx + 1, # 1-based usually friendly
+            ATTR_CHANNEL: self._channel_idx + 1,
             ATTR_MIN_TEMP: channel.get("min"),
             ATTR_MAX_TEMP: channel.get("max"),
             ATTR_ALARM_MIN: channel.get("alarm_min"),
@@ -170,7 +172,6 @@ class WLANThermoPitmasterValueSensor(CoordinatorEntity, SensorEntity):
 
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
-    # Usually fan, but no official fan % sensor device class, maybe just generic
 
     def __init__(self, coordinator, pm_idx: int) -> None:
         """Initialize the sensor."""

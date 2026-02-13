@@ -84,28 +84,34 @@ class WLANThermoOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        # Defaults placeholders
+        default_name = DEFAULT_NAME
+        default_topic = DEFAULT_TOPIC_PREFIX
+
         try:
-            # Safe retrieval of values
-            current_name = self.config_entry.options.get(CONF_DEVICE_NAME)
-            if current_name is None:
-                 current_name = self.config_entry.data.get(CONF_DEVICE_NAME, DEFAULT_NAME)
+            # Try to get from options, then data, then const
+            if self.config_entry.options:
+                default_name = self.config_entry.options.get(CONF_DEVICE_NAME, default_name)
+                default_topic = self.config_entry.options.get(CONF_TOPIC_PREFIX, default_topic)
             
-            current_topic = self.config_entry.options.get(CONF_TOPIC_PREFIX)
-            if current_topic is None:
-                current_topic = self.config_entry.data.get(CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX)
+            if self.config_entry.data:
+                # If not in options (or default), try data. 
+                # Note: This logic overrides options if they match default, which is fine mostly.
+                # Better: prioritize options if key exists.
+                if CONF_DEVICE_NAME not in (self.config_entry.options or {}):
+                     default_name = self.config_entry.data.get(CONF_DEVICE_NAME, default_name)
+                if CONF_TOPIC_PREFIX not in (self.config_entry.options or {}):
+                     default_topic = self.config_entry.data.get(CONF_TOPIC_PREFIX, default_topic)
 
-            # Ensure they are strings
-            current_name = str(current_name)
-            current_topic = str(current_topic)
+        except Exception:
+            _LOGGER.warning("Failed to retrieve config entry data/options, utilizing defaults")
 
-            schema = vol.Schema(
-                {
-                    vol.Optional(CONF_DEVICE_NAME, default=current_name): cv.string,
-                    vol.Optional(CONF_TOPIC_PREFIX, default=current_topic): cv.string,
-                }
-            )
+        # Create schema with calculated defaults
+        options_schema = vol.Schema(
+            {
+                vol.Optional(CONF_DEVICE_NAME, default=default_name): cv.string,
+                vol.Optional(CONF_TOPIC_PREFIX, default=default_topic): cv.string,
+            }
+        )
 
-            return self.async_show_form(step_id="init", data_schema=schema)
-        except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected exception in options flow")
-            return self.async_abort(reason="unknown")
+        return self.async_show_form(step_id="init", data_schema=options_schema)
