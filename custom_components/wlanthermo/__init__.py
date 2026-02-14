@@ -93,10 +93,24 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
         if self.last_update_time == 0.0:
             return
 
-        # Timeout 600s (10 min) to allow slower update intervals
-        if time.time() - self.last_update_time > 600:
+        # Determine timeout dynamically
+        # Default: 600s (safe fallback)
+        timeout = 600
+        
+        # Try to read interval from settings (iot.PMQint)
+        if "iot" in self.data and "PMQint" in self.data["iot"]:
+            try:
+                interval = int(self.data["iot"]["PMQint"])
+                # Use 2.5x interval to be safe, but at least 60s
+                # Example: 30s -> 75s timeout
+                # Example: 300s -> 750s timeout
+                timeout = max(60, interval * 2 + 15)
+            except (ValueError, TypeError):
+                pass
+        
+        if time.time() - self.last_update_time > timeout:
             if "system" in self.data and self.data["system"].get("online") != False:
-                _LOGGER.warning(f"WLANThermo {self.device_name} offline (no data for >600s)")
+                _LOGGER.warning(f"WLANThermo {self.device_name} offline (no data for >{timeout}s)")
                 self.data["system"]["online"] = False
                 self.async_set_updated_data(self.data)
 
