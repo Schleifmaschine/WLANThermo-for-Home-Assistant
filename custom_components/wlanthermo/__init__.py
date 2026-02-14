@@ -1,12 +1,46 @@
 import time
 from datetime import timedelta
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.components import mqtt
+from homeassistant.core import callback
 
 # ... (imports)
+import logging
+import json
+from typing import Any
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.const import Platform
+
+from .const import (
+    CONF_DEVICE_NAME,
+    CONF_TOPIC_PREFIX,
+    DATA_COORDINATOR,
+    DATA_MQTT_UNSUBSCRIBE,
+    DOMAIN,
+    TOPIC_STATUS_DATA,
+    TOPIC_STATUS_SETTINGS,
+    TOPIC_SET,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.NUMBER,
+    Platform.SWITCH,  # Re-enabled for Alarm Switch
+    Platform.BINARY_SENSOR,
+    Platform.SELECT,
+    Platform.TEXT,
+]
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WLANThermo from a config entry."""
-    _LOGGER.info("Starting WLANThermo Integration version 1.12.0")
+    _LOGGER.info("Starting WLANThermo Integration version 1.14.0")
     hass.data.setdefault(DOMAIN, {})
 
     device_name = entry.data[CONF_DEVICE_NAME]
@@ -45,8 +79,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     hass.data[DOMAIN][entry.entry_id] = {
         DATA_COORDINATOR: coordinator,
-        DATA_MQTT_UNSUBSCRIBE: [sub_data, sub_settings, unsub_timer], # Add timer unsub here
     }
+    hass.data[DOMAIN][entry.entry_id][DATA_MQTT_UNSUBSCRIBE] = [sub_data, sub_settings, unsub_timer]
+
+    # Send "get" command to trigger settings update from device
+    # Many WLANThermo devices respond to {"get": "all"} or just an update on connection
+    try:
+        payload = json.dumps({"get": "all"})
+        topic = f"{topic_prefix}/{TOPIC_SET}"
+        _LOGGER.debug(f"Sending discovery command to {topic}: {payload}")
+        await mqtt.async_publish(hass, topic, payload)
+    except Exception as e:
+        _LOGGER.warning(f"Could not send discovery command: {e}")
+
+    # Wait for first data with timeout (to avoid hanging forever)
 
     # ... (rest of setup)
 

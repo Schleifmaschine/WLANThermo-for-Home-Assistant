@@ -11,6 +11,7 @@ TOPIC_STATUS_DATA = "status/data"
 TOPIC_STATUS_SETTINGS = "status/settings"
 TOPIC_SET_CHANNELS = "set/channels"
 TOPIC_SET_PITMASTER = "set/pitmaster"
+TOPIC_SET = "set"
 
 # Default values
 DEFAULT_NAME = "WLANThermo"
