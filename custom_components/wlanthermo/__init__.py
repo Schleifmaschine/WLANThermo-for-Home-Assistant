@@ -46,8 +46,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     device_name = entry.data[CONF_DEVICE_NAME]
     topic_prefix = entry.data[CONF_TOPIC_PREFIX]
 
-    # Create coordinator
-    coordinator = WLANThermoDataCoordinator(hass, device_name, topic_prefix)
+    # Create coordinator with explicit entry_id for storage
+    coordinator = WLANThermoDataCoordinator(hass, device_name, topic_prefix, entry.entry_id)
+    
+    # Attempt to restore data immediately
+    await coordinator.async_load_data()
 
     # ... (setup)
 
@@ -117,11 +120,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 # ...
 
+    # ... (imports)
+from homeassistant.helpers.storage import Store
+
+# ...
+
 class WLANThermoDataCoordinator(DataUpdateCoordinator):
     """Class to manage fetching WLANThermo data."""
 
     def __init__(
-        self, hass: HomeAssistant, device_name: str, topic_prefix: str
+        self, hass: HomeAssistant, device_name: str, topic_prefix: str, entry_id: str
     ) -> None:
         """Initialize."""
         super().__init__(
@@ -133,6 +141,21 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
         self.topic_prefix = topic_prefix
         self.data: dict[str, Any] = {}
         self.last_update_time = 0.0
+        
+        # Persistence
+        self._store = Store(hass, 1, f"wlanthermo.{entry_id}")
+
+    async def async_load_data(self) -> None:
+        """Load data from storage."""
+        try:
+            stored_data = await self._store.async_load()
+            if stored_data:
+                _LOGGER.info(f"Restored {len(stored_data)} keys from storage for {self.device_name}")
+                self._merge_data(stored_data)
+                # Ensure we have a valid state to create entities, even if offline
+                self.async_set_updated_data(self.data)
+        except Exception as e:
+            _LOGGER.warning(f"Error restoring data: {e}")
 
     @callback
     def async_set_data(self, data: dict[str, Any]) -> None:
@@ -144,6 +167,10 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
             self.data["system"]["online"] = True
             
         self.async_set_updated_data(self.data)
+        
+        # Save data occasionally (maybe just rely on settings for now to save IO?)
+        # For now, let's NOT save on high-frequency data to protect SSDs/SD cards
+        # unless specifically requested. We primarily need 'settings' persistent.
 
     @callback
     def async_set_settings(self, settings: dict[str, Any]) -> None:
@@ -151,6 +178,9 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
         self.last_update_time = time.time()
         self._merge_data(settings)
         self.async_set_updated_data(self.data)
+        
+        # Persist settings when they change!
+        self.hass.async_create_task(self._store.async_save(self.data))
         
     @callback
     def check_offline(self) -> None:
