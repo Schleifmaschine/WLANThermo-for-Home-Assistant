@@ -92,6 +92,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as e:
         _LOGGER.warning(f"Could not send discovery command: {e}")
 
+    # Force update by sending current time to set/system
+    # This changes a setting (time) safely and usually triggers a response
+    try:
+        ts = str(int(time.time()))
+        payload = json.dumps({"time": ts})
+        topic = f"{topic_prefix}/set/system"
+        _LOGGER.debug(f"Sending time sync to {topic}: {payload}")
+        await mqtt.async_publish(hass, topic, payload)
+    except Exception as e:
+        _LOGGER.warning(f"Could not send time sync: {e}")
+
     # Wait for first data with timeout (to avoid hanging forever)
 
     # ... (rest of setup)

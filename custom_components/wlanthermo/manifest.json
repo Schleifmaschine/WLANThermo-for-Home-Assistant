@@ -13,5 +13,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/Schleifmaschine/WLANThermo-for-Home-Assistant/issues",
   "requirements": [],
-  "version": "1.14.0"
+  "version": "1.14.1"
 }
