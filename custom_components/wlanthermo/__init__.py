@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import timedelta
 from homeassistant.helpers.event import async_track_time_interval
@@ -40,7 +41,7 @@ PLATFORMS: list[Platform] = [
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WLANThermo from a config entry."""
-    _LOGGER.info("Starting WLANThermo Integration version 1.14.0")
+    _LOGGER.info("Starting WLANThermo Integration version 1.16.1")
     hass.data.setdefault(DOMAIN, {})
 
     device_name = entry.data[CONF_DEVICE_NAME]
@@ -51,8 +52,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Attempt to restore data immediately
     await coordinator.async_load_data()
-
-    # ... (setup)
+    
+    first_data_event = asyncio.Event()
 
     # Subscribe to MQTT topics
     @callback
@@ -68,9 +69,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except json.JSONDecodeError:
             _LOGGER.error("Failed to decode MQTT payload: %s", msg.payload)
 
-    # ... (message_received_settings similar)
+    @callback
+    def message_received_settings(msg):
+        """Handle new MQTT messages for settings."""
+        try:
+            payload = json.loads(msg.payload)
+            coordinator.async_set_settings(payload)
+            _LOGGER.debug("Received settings: %s", payload)
+        except json.JSONDecodeError:
+            _LOGGER.error("Failed to decode MQTT settings payload: %s", msg.payload)
 
-    # ... (subscriptions)
+    # Subscribe
+    sub_data = await mqtt.async_subscribe(
+        hass, f"{topic_prefix}/{TOPIC_STATUS_DATA}", message_received_data, 0
+    )
+    sub_settings = await mqtt.async_subscribe(
+        hass, f"{topic_prefix}/{TOPIC_STATUS_SETTINGS}", message_received_settings, 0
+    )
 
     # Setup offline detection (check every 30s)
     @callback
@@ -114,9 +129,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as e:
         _LOGGER.warning(f"Could not send time sync: {e}")
 
-    # Wait for first data with timeout (to avoid hanging forever)
-
-    # ... (rest of setup)
+    # Initialize platforms immediately
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
 
 # ...
 
