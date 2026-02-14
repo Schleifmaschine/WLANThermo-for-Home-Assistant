@@ -93,10 +93,10 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
         if self.last_update_time == 0.0:
             return
 
-        # Timeout 60s
-        if time.time() - self.last_update_time > 60:
+        # Timeout 600s (10 min) to allow slower update intervals
+        if time.time() - self.last_update_time > 600:
             if "system" in self.data and self.data["system"].get("online") != False:
-                _LOGGER.warning(f"WLANThermo {self.device_name} offline (no data for >60s)")
+                _LOGGER.warning(f"WLANThermo {self.device_name} offline (no data for >600s)")
                 self.data["system"]["online"] = False
                 self.async_set_updated_data(self.data)
 
