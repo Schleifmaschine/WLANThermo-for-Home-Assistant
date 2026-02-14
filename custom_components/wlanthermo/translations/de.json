@@ -51,6 +51,15 @@
                     "manual": "Manuell",
                     "auto": "Automatisch"
                 }
+            },
+            "channel_alarm": {
+                "name": "Alarm Modus",
+                "state": {
+                    "off": "Aus",
+                    "push": "Push",
+                    "beeper": "Pieper",
+                    "both": "Push/Pieper"
+                }
             }
         },
         "sensor": {

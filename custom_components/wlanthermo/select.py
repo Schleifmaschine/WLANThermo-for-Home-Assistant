@@ -359,17 +359,24 @@ class WLANThermoChannelAlarmSelect(CoordinatorEntity, SelectEntity):
     """Representation of a WLANThermo Channel Alarm select."""
 
     _attr_icon = "mdi:alert"
+    _attr_translation_key = "channel_alarm"
     
-    # Options mapping
-    _OPTIONS_MAP = {
-        0: "Off",
-        1: "Push",
-        2: "Beeper",
-        3: "Push/Beeper"
+    # Internal options (matches translation key suffix)
+    _OPTION_OFF = "off"
+    _OPTION_PUSH = "push"
+    _OPTION_BEEPER = "beeper"
+    _OPTION_BOTH = "both"
+    
+    _attr_options = [_OPTION_OFF, _OPTION_PUSH, _OPTION_BEEPER, _OPTION_BOTH]
+
+    # Map internal options to API integers
+    _API_MAP = {
+        _OPTION_OFF: 0,
+        _OPTION_PUSH: 1,
+        _OPTION_BEEPER: 2,
+        _OPTION_BOTH: 3
     }
-    _REVERSE_MAP = {v: k for k, v in _OPTIONS_MAP.items()}
-    
-    _attr_options = list(_OPTIONS_MAP.values())
+    _REVERSE_API_MAP = {v: k for k, v in _API_MAP.items()}
 
     def __init__(self, coordinator, channel_idx: int) -> None:
         """Initialize the select."""
@@ -385,7 +392,7 @@ class WLANThermoChannelAlarmSelect(CoordinatorEntity, SelectEntity):
         """Return the selected entity option."""
         # API returns integer 0-3
         alarm_val = self._get_channel_data().get("alarm", 0)
-        return self._OPTIONS_MAP.get(alarm_val, "Off")
+        return self._REVERSE_API_MAP.get(alarm_val, self._OPTION_OFF)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -400,7 +407,7 @@ class WLANThermoChannelAlarmSelect(CoordinatorEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        alarm_val = self._REVERSE_MAP.get(option)
+        alarm_val = self._API_MAP.get(option)
         if alarm_val is None:
             return
 
