@@ -73,7 +73,7 @@
         },
         "switch": {
             "alarm": {
-                "name": "Push Notification"
+                "name": "Push Notification (Deprecated)"
             }
         }
     }

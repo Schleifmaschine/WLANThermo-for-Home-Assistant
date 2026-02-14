@@ -365,7 +365,7 @@ class WLANThermoChannelAlarmSelect(CoordinatorEntity, SelectEntity):
         0: "Off",
         1: "Push",
         2: "Beeper",
-        3: "Both"
+        3: "Push/Beeper"
     }
     _REVERSE_MAP = {v: k for k, v in _OPTIONS_MAP.items()}
     

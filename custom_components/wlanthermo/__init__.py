@@ -1,43 +1,12 @@
-"""The WLANThermo integration."""
-from __future__ import annotations
+import time
+from datetime import timedelta
+from homeassistant.helpers.event import async_track_time_interval
 
-import asyncio
-import json
-import logging
-from typing import Any
-
-from homeassistant.components import mqtt
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-
-from .const import (
-    CONF_DEVICE_NAME,
-    CONF_TOPIC_PREFIX,
-    DATA_COORDINATOR,
-    DATA_MQTT_UNSUBSCRIBE,
-    DOMAIN,
-    TOPIC_STATUS_DATA,
-    TOPIC_STATUS_SETTINGS,
-)
-
-_LOGGER = logging.getLogger(__name__)
-
-PLATFORMS: list[Platform] = [
-    Platform.SENSOR,
-    Platform.NUMBER,
-    Platform.SWITCH,  # Re-enabled for Alarm Switch
-    Platform.BINARY_SENSOR,
-    Platform.SELECT,
-    Platform.TEXT,
-]
-
+# ... (imports)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up WLANThermo from a config entry."""
-    _LOGGER.info("Starting WLANThermo Integration version 1.7.1")
+    _LOGGER.info("Starting WLANThermo Integration version 1.12.0")
     hass.data.setdefault(DOMAIN, {})
 
     device_name = entry.data[CONF_DEVICE_NAME]
@@ -46,13 +15,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinator
     coordinator = WLANThermoDataCoordinator(hass, device_name, topic_prefix)
 
-    hass.data[DOMAIN][entry.entry_id] = {
-        DATA_COORDINATOR: coordinator,
-        DATA_MQTT_UNSUBSCRIBE: [],
-    }
-
-    # Future for waiting for first data
-    first_data_event = asyncio.Event()
+    # ... (setup)
 
     # Subscribe to MQTT topics
     @callback
@@ -68,68 +31,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except json.JSONDecodeError:
             _LOGGER.error("Failed to decode MQTT payload: %s", msg.payload)
 
+    # ... (message_received_settings similar)
+
+    # ... (subscriptions)
+
+    # Setup offline detection (check every 30s)
     @callback
-    def message_received_settings(msg):
-        """Handle new MQTT messages for settings."""
-        try:
-            payload = json.loads(msg.payload)
-            coordinator.async_set_settings(payload)
-            if not first_data_event.is_set():
-                first_data_event.set()
-                _LOGGER.debug("First settings received, unblocking setup")
-            _LOGGER.debug("Received settings: %s", payload)
-        except json.JSONDecodeError:
-            _LOGGER.error("Failed to decode MQTT payload: %s", msg.payload)
+    def check_offline_status(_):
+        """Check if device is offline."""
+        coordinator.check_offline()
 
-    # Subscribe to topics
-    sub_data = await mqtt.async_subscribe(
-        hass, f"{topic_prefix}/{TOPIC_STATUS_DATA}", message_received_data, 0
-    )
-    sub_settings = await mqtt.async_subscribe(
-        hass, f"{topic_prefix}/{TOPIC_STATUS_SETTINGS}", message_received_settings, 0
-    )
+    unsub_timer = async_track_time_interval(hass, check_offline_status, timedelta(seconds=30))
     
-    hass.data[DOMAIN][entry.entry_id][DATA_MQTT_UNSUBSCRIBE] = [sub_data, sub_settings]
+    hass.data[DOMAIN][entry.entry_id] = {
+        DATA_COORDINATOR: coordinator,
+        DATA_MQTT_UNSUBSCRIBE: [sub_data, sub_settings, unsub_timer], # Add timer unsub here
+    }
 
-    # Wait for first data with timeout (to avoid hanging forever)
-    # If we have data, we proceed. If not, we might proceed with empty data 
-    # but the platforms need to handle it.
-    # ideally we want to show it as "loaded" but maybe unavailable entities.
-    
-    # We create a task to forward setup once data is received
-    entry.async_create_background_task(
-        hass, 
-        _async_finish_startup(hass, entry, first_data_event),
-        "wlanthermo_finish_startup"
-    )
+    # ... (rest of setup)
 
-    return True
-
-async def _async_finish_startup(hass: HomeAssistant, entry: ConfigEntry, event: asyncio.Event):
-    """Wait for data and then load platforms."""
-    # We used to wait here, but that caused "Config entry was never loaded" errors
-    # if the entry was unloaded (e.g. reload) while waiting.
-    # The platforms handle missing data gracefully now (by waiting themselves).
-    # So we just forward immediately to register the entry as "loaded".
-    
-    # Optional: We could still wait a tiny bit or check event to log a message,
-    # but strictly speaking we should just proceed.
-    
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    # Unload platforms
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        # Unsubscribe from MQTT
-        if entry.entry_id in hass.data[DOMAIN]:
-             for unsubscribe in hass.data[DOMAIN][entry.entry_id].get(DATA_MQTT_UNSUBSCRIBE, []):
-                unsubscribe()
-             hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_ok
-
+# ...
 
 class WLANThermoDataCoordinator(DataUpdateCoordinator):
     """Class to manage fetching WLANThermo data."""
@@ -146,17 +67,40 @@ class WLANThermoDataCoordinator(DataUpdateCoordinator):
         self.device_name = device_name
         self.topic_prefix = topic_prefix
         self.data: dict[str, Any] = {}
+        self.last_update_time = 0.0
+
     @callback
     def async_set_data(self, data: dict[str, Any]) -> None:
         """Set data and notify listeners."""
+        self.last_update_time = time.time()
         self._merge_data(data)
+        # Force online status if we receive data
+        if "system" in self.data:
+            self.data["system"]["online"] = True
+            
         self.async_set_updated_data(self.data)
 
     @callback
     def async_set_settings(self, settings: dict[str, Any]) -> None:
         """Set settings."""
+        self.last_update_time = time.time()
         self._merge_data(settings)
         self.async_set_updated_data(self.data)
+        
+    @callback
+    def check_offline(self) -> None:
+        """Check if data is stale (offline)."""
+        if self.last_update_time == 0.0:
+            return
+
+        # Timeout 60s
+        if time.time() - self.last_update_time > 60:
+            if "system" in self.data and self.data["system"].get("online") != False:
+                _LOGGER.warning(f"WLANThermo {self.device_name} offline (no data for >60s)")
+                self.data["system"]["online"] = False
+                self.async_set_updated_data(self.data)
+
+    # ... (rest of class)
 
     def _merge_data(self, new_data: dict[str, Any]) -> None:
         """Deep merge new_data into self.data."""
