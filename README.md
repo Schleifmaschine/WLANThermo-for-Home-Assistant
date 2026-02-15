@@ -87,7 +87,6 @@ Nach der Konfiguration werden automatisch folgende Entitäten erstellt:
 ### Sensoren
 
 - **Temperatur-Sensoren** für jeden Kanal (z.B. `sensor.grill_kanal_1`)
-- **CPU-Temperatur** (`sensor.grill_cpu_temperature`)
 - **Batterie** (`sensor.grill_battery`)
 - **WiFi-Signal** (`sensor.grill_wifi_signal`)
 
@@ -96,9 +95,6 @@ Nach der Konfiguration werden automatisch folgende Entitäten erstellt:
 - **Alarm Min** für jeden Kanal (z.B. `number.grill_kanal_1_alarm_min`)
 - **Alarm Max** für jeden Kanal (z.B. `number.grill_kanal_1_alarm_max`)
 
-### Schalter
-
-- **Kanal aktiviert** für jeden Kanal (z.B. `switch.grill_kanal_1_enabled`)
 
 ## MQTT-Topics
 
