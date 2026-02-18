@@ -7,35 +7,6 @@
 🌡️ WLANThermo für Home Assistant
 Eine leistungsstarke und native Home Assistant Integration für WLANThermo-Geräte. Verbinde dein Grill-Thermometer nahtlos mit deinem Smart Home über MQTT und behalte deine Temperaturen, Pitmaster-Steuerung und Alarme direkt in Home Assistant im Blick.
 
-📋 Inhaltsverzeichnis
-Funktionen
-
-Unterstützte Geräte
-
-Voraussetzungen
-
-Installation
-
-Via HACS (Empfohlen)
-
-Manuelle Installation
-
-Konfiguration
-
-Schritt 1: MQTT Broker
-
-Schritt 2: WLANThermo Einstellungen
-
-Schritt 3: Integration hinzufügen
-
-Nutzung & Entitäten
-
-Automatisierungs-Beispiele
-
-Troubleshooting
-
-Lizenz & Credits
-
 ✨ Funktionen
 Diese Integration bietet weit mehr als nur das Anzeigen von Temperaturen:
 
