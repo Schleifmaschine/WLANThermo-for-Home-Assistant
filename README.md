@@ -4,180 +4,201 @@
 [![GitHub release](https://img.shields.io/github/release/Schleifmaschine/WLANThermo-for-Home-Assistant.svg)](https://github.com/Schleifmaschine/WLANThermo-for-Home-Assistant/releases)
 [![License](https://img.shields.io/github/license/Schleifmaschine/WLANThermo-for-Home-Assistant.svg)](LICENSE)
 
-Eine vollständige Home Assistant Integration für WLANThermo-Geräte (Mini V3, Nano V3, etc.) mit MQTT-Unterstützung.
+🌡️ WLANThermo für Home Assistant
+Eine leistungsstarke und native Home Assistant Integration für WLANThermo-Geräte. Verbinde dein Grill-Thermometer nahtlos mit deinem Smart Home über MQTT und behalte deine Temperaturen, Pitmaster-Steuerung und Alarme direkt in Home Assistant im Blick.
 
-## Features
+📋 Inhaltsverzeichnis
+Funktionen
 
-- 🌡️ **Temperatursensoren** für alle Kanäle
-- 🔔 **Alarm-Temperaturen** konfigurierbar
-- 🔌 **Kanal-Steuerung** (aktivieren/deaktivieren)
-- 🔥 **Pitmaster-Steuerung** (Zieltemperatur, Modus, Lüfterwert)
-- 📊 **System-Sensoren** (CPU, Batterie, WiFi, Online-Status)
-- 🎨 **UI-Konfiguration** über Config Flow
-- 🌍 **Mehrsprachig** (Deutsch & Englisch)
-- 📱 **HACS-kompatibel** für einfache Installation
+Unterstützte Geräte
 
-## Unterstützte Geräte
+Voraussetzungen
 
-- WLANThermo Mini V3
-- WLANThermo Nano V3
-- WLANThermo Link V1
-- Andere ESP32-basierte WLANThermo-Geräte
+Installation
 
-## Voraussetzungen
+Via HACS (Empfohlen)
 
-1. **Home Assistant** (Version 2023.1.0 oder neuer)
-2. **MQTT Broker** (z.B. Mosquitto)
-3. **WLANThermo-Gerät** mit MQTT-Unterstützung
+Manuelle Installation
 
-## Installation
+Konfiguration
 
-### HACS (empfohlen)
+Schritt 1: MQTT Broker
 
-1. Öffne HACS in Home Assistant
-2. Gehe zu "Integrationen"
-3. Klicke auf die drei Punkte oben rechts und wähle "Benutzerdefinierte Repositories"
-4. Füge die Repository-URL hinzu: `https://github.com/Schleifmaschine/WLANThermo-for-Home-Assistant`
-5. Kategorie: "Integration"
-6. Klicke auf "Hinzufügen"
-7. Suche nach "WLANThermo" und installiere die Integration
-8. Starte Home Assistant neu
+Schritt 2: WLANThermo Einstellungen
 
-### Manuell
+Schritt 3: Integration hinzufügen
 
-1. Lade die neueste Version von [Releases](https://github.com/Schleifmaschine/WLANThermo-for-Home-Assistant/releases) herunter
-2. Entpacke das Archiv
-3. Kopiere den Ordner `custom_components/wlanthermo` in dein Home Assistant `config/custom_components/` Verzeichnis
-4. Starte Home Assistant neu
+Nutzung & Entitäten
 
-## Konfiguration
+Automatisierungs-Beispiele
 
-### 1. MQTT-Broker einrichten
+Troubleshooting
 
-Stelle sicher, dass du einen MQTT-Broker in Home Assistant konfiguriert hast:
+Lizenz & Credits
 
-**Einstellungen** → **Geräte & Dienste** → **MQTT**
+✨ Funktionen
+Diese Integration bietet weit mehr als nur das Anzeigen von Temperaturen:
 
-### 2. WLANThermo MQTT konfigurieren
+🔥 Live-Temperaturen: Überwachung aller Fühler-Kanäle in Echtzeit.
 
-Konfiguriere dein WLANThermo-Gerät, um Daten an deinen MQTT-Broker zu senden:
+⚙️ Pitmaster-Steuerung: Setze die Zieltemperatur, ändere den Modus und überwache den Lüfter-Status direkt aus HA.
 
-1. Öffne die WLANThermo-Weboberfläche
-2. Gehe zu **Einstellungen** → **MQTT**
-3. Aktiviere MQTT
-4. Setze den **Host** auf die IP-Adresse deines Home Assistant
-5. Setze **Port** auf `1883` (Standard)
-6. Optional: Benutzername und Passwort eingeben
-7. Speichern
+🔔 Alarm-Management: Konfiguriere Min/Max-Alarmgrenzen für jeden Kanal individuell über Number-Entitäten.
 
-### 3. Integration in Home Assistant hinzufügen
+🔋 System-Status: Behalte Akkustand, WLAN-Signalstärke und Online-Status im Auge.
 
-1. Gehe zu **Einstellungen** → **Geräte & Dienste**
-2. Klicke auf **+ Integration hinzufügen**
-3. Suche nach "WLANThermo"
-4. Gib die folgenden Informationen ein:
-   - **Gerätename**: Ein Name für dein WLANThermo (z.B. "Grill")
-   - **MQTT Topic-Präfix**: Das Topic-Präfix deines Geräts (z.B. `WLanThermo/MINI-V3`)
-5. Klicke auf **Absenden**
+🔌 Kanal-Verwaltung: Aktiviere oder deaktiviere einzelne Kanäle bei Bedarf.
 
-## Verwendung
+🛠️ Einfache Einrichtung: Volle Unterstützung für den Home Assistant Config Flow (UI-Konfiguration).
 
-Nach der Konfiguration werden automatisch folgende Entitäten erstellt:
+📱 Unterstützte Geräte
+Die Integration wurde primär für folgende Modelle entwickelt, sollte aber mit allen ESP32-basierten WLANThermo-Geräten funktionieren, die das aktuelle API unterstützen:
 
-### Sensoren
+✅ WLANThermo Mini V3
 
-- **Temperatur-Sensoren** für jeden Kanal (z.B. `sensor.grill_kanal_1`)
-- **Batterie** (`sensor.grill_battery`)
-- **WiFi-Signal** (`sensor.grill_wifi_signal`)
+✅ WLANThermo Nano V3
 
-### Number-Entitäten
+✅ WLANThermo Link V1
 
-- **Alarm Min** für jeden Kanal (z.B. `number.grill_kanal_1_alarm_min`)
-- **Alarm Max** für jeden Kanal (z.B. `number.grill_kanal_1_alarm_max`)
+🛠 Voraussetzungen
+Bevor du startest, stelle sicher, dass du folgendes bereit hast:
 
+Home Assistant (Version 2023.1.0 oder neuer).
 
-## MQTT-Topics
+Einen installierten MQTT Broker (z.B. das offizielle Mosquitto Add-on in Home Assistant).
 
-Die Integration verwendet folgende MQTT-Topics:
+Ein WLANThermo-Gerät, das im selben Netzwerk verbunden ist.
 
-| Topic | Beschreibung |
-|-------|--------------|
-| `{prefix}/status/data` | Status-Daten (Temperaturen, System) |
-| `{prefix}/status/settings` | Einstellungen |
-| `{prefix}/set/channels` | Kanal-Konfiguration setzen |
+💾 Installation
+Via HACS (Empfohlen)
+Der einfachste Weg, die Integration aktuell zu halten.
 
-Wobei `{prefix}` dein konfiguriertes Topic-Präfix ist (z.B. `WLanThermo/MINI-V3`).
+Öffne HACS in deinem Home Assistant.
 
-## Beispiel-Automatisierung
+Wähle Integrationen > Menü (drei Punkte oben rechts) > Benutzerdefinierte Repositories.
 
-```yaml
-automation:
-  - alias: "Grill Temperatur Alarm"
-    trigger:
-      - platform: numeric_state
-        entity_id: sensor.grill_kanal_1
-        above: 200
-    action:
-      - service: notify.mobile_app
-        data:
-          title: "Grill Alarm"
-          message: "Temperatur über 200°C!"
-```
+Füge folgende URL hinzu:
+https://github.com/Schleifmaschine/WLANThermo-for-Home-Assistant
 
-## Troubleshooting
+Wähle als Kategorie Integration.
 
-### Keine Daten empfangen
+Klicke auf Hinzufügen und suche dann in HACS nach "WLANThermo".
 
-1. Überprüfe, ob der MQTT-Broker läuft
-2. Überprüfe die MQTT-Konfiguration im WLANThermo
-3. Überprüfe das Topic-Präfix in der Integration
-4. Schaue in die Home Assistant Logs: **Einstellungen** → **System** → **Protokolle**
+Klicke auf Herunterladen.
 
-### Entitäten werden nicht erstellt
+Wichtig: Starte Home Assistant neu!
 
-1. Stelle sicher, dass das WLANThermo Daten sendet
-2. Überprüfe die MQTT-Topics mit einem MQTT-Client (z.B. MQTT Explorer)
-3. Starte Home Assistant neu
+Manuelle Installation
+Lade die neueste Version von den Releases herunter.
 
-### MQTT-Topics finden
+Entpacke die Datei.
 
-Verwende einen MQTT-Client wie [MQTT Explorer](http://mqtt-explorer.com/) um zu sehen, welche Topics dein WLANThermo verwendet.
+Kopiere den Ordner custom_components/wlanthermo in dein Home Assistant Verzeichnis: /config/custom_components/.
 
-## Entwicklung
+Starte Home Assistant neu.
 
-### Lokales Testen
+⚙ Konfiguration
+Schritt 1: MQTT Broker
+Stelle sicher, dass die MQTT-Integration in Home Assistant korrekt eingerichtet ist (Einstellungen → Geräte & Dienste → MQTT).
 
-1. Clone das Repository
-2. Kopiere `custom_components/wlanthermo` in dein Home Assistant `config/custom_components/` Verzeichnis
-3. Starte Home Assistant neu
-4. Aktiviere Debug-Logging in `configuration.yaml`:
+Schritt 2: WLANThermo Einstellungen
+Damit dein Thermo mit Home Assistant sprechen kann, muss MQTT auf dem Gerät aktiviert werden:
 
-```yaml
-logger:
-  default: info
-  logs:
-    custom_components.wlanthermo: debug
-```
+Öffne das Web-Interface deines WLANThermo.
 
-## Beitragen
+Navigiere zu Einstellungen → MQTT.
 
-Contributions sind willkommen! Bitte erstelle einen Pull Request oder öffne ein Issue.
+Aktiviere den Haken bei MQTT.
 
-## Lizenz
+Host: IP-Adresse deines Home Assistant (oder des MQTT Brokers).
 
-MIT License - siehe [LICENSE](LICENSE) Datei
+Port: Standard ist 1883.
 
-## Credits
+(Optional) Benutzername/Passwort, falls im Broker konfiguriert.
 
-- Entwickelt für die [WLANThermo](https://wlanthermo.de/) Community
-- Basierend auf der [Home Assistant Integration Blueprint](https://github.com/home-assistant/example-custom-config)
+Speichere die Einstellungen.
 
-## Support
+Schritt 3: Integration hinzufügen
+Gehe in Home Assistant zu Einstellungen → Geräte & Dienste.
 
-Bei Problemen oder Fragen:
-- Öffne ein [Issue auf GitHub](https://github.com/Schleifmaschine/WLANThermo-for-Home-Assistant/issues)
-- Besuche das [WLANThermo Forum](https://forum.wlanthermo.de/)
+Klicke unten rechts auf + Integration hinzufügen.
 
----
+Suche nach WLANThermo.
 
-**Hinweis**: Diese Integration ist nicht offiziell von WLANThermo unterstützt.
+Gib die erforderlichen Daten ein:
+
+Name: Ein Anzeigename (z.B. "Mein Grill").
+
+MQTT Topic-Präfix: Dies muss mit der Einstellung im WLANThermo übereinstimmen (Standard oft: WLanThermo/MINI-V3 oder ähnlich).
+
+Bestätigen – fertig! 🎉
+
+📊 Nutzung & Entitäten
+Nach der Einrichtung erstellt die Integration automatisch ein Gerät mit diversen Entitäten.
+
+Haupt-Sensoren
+sensor.mein_grill_kanal_1 ... sensor.mein_grill_kanal_8: Aktuelle Temperaturen.
+
+sensor.mein_grill_battery: Batteriestatus in %.
+
+sensor.mein_grill_wifi_signal: RSSI-Wert des WLANs.
+
+Steuerung (Number & Select)
+number.mein_grill_kanal_1_alarm_min: Untergrenze für Alarm.
+
+number.mein_grill_kanal_1_alarm_max: Obergrenze für Alarm.
+
+number.mein_grill_pitmaster_set_temp: Zieltemperatur für den Pitmaster.
+
+🤖 Automatisierungs-Beispiele
+Benachrichtigung bei Zieltemperatur
+Sende eine Push-Nachricht auf dein Handy, wenn das Fleisch fertig ist.
+
+YAML
+alias: "Grill: Fleisch ist fertig"
+description: "Benachrichtigung wenn Kanal 1 über 93 Grad steigt"
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.mein_grill_kanal_1
+    above: 93
+action:
+  - service: notify.mobile_app_dein_handy
+    data:
+      title: "🍖 Essen ist fertig!"
+      message: "Das Pulled Pork hat 93°C erreicht. Guten Appetit!"
+Pitmaster Automatik
+Schalte den Pitmaster aus, wenn der Grillvorgang beendet ist (manuell oder via Logik).
+
+YAML
+alias: "Grill: Pitmaster aus"
+trigger:
+  - platform: state
+    entity_id: input_boolean.grill_session
+    to: "off"
+action:
+  - service: number.set_value
+    target:
+      entity_id: number.mein_grill_pitmaster_set_temp
+    data:
+      value: 0
+❓ Troubleshooting
+Problem: Keine Entitäten oder "Nicht verfügbar"
+
+Prüfe mit einem Tool wie MQTT Explorer, ob Daten unter dem konfigurierten Topic ankommen.
+
+Stimmt das Topic-Präfix in der Integration exakt mit dem im WLANThermo überein? (Groß-/Kleinschreibung beachten!).
+
+Ist das WLANThermo im selben Netzwerk und online?
+
+Problem: Änderungen in HA werden nicht am Thermo übernommen
+
+Stelle sicher, dass das Topic .../set/... vom Broker empfangen und vom WLANThermo gelesen werden kann.
+
+📜 Lizenz & Credits
+Dieses Projekt steht unter der MIT Lizenz. Siehe LICENSE für Details.
+
+Entwickelt von Schleifmaschine.
+
+Ein großer Dank geht an die WLANThermo Community für die großartige Hardware und Software.
+
+Hinweis: Dies ist ein Community-Projekt und keine offizielle Integration des WLANThermo-Herstellers.
