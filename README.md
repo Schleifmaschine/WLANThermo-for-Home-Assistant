@@ -131,3 +131,13 @@ Hast du Verbesserungsvorschläge oder Fehler gefunden?
 - Diskutiere im [WLANThermo Forum](https://forum.wlanthermo.de/).
 
 *Dieses Projekt ist eine Community-Entwicklung und steht in keiner offiziellen Verbindung zur WLANThermo GmbH.*
+
+---
+
+## 📜 Lizenz & Credits
+Dieses Projekt steht unter der MIT Lizenz. Siehe [LICENSE](LICENSE) für Details.
+
+Entwickelt von Schleifmaschine und der WLANThermo Community.
+Ein großer Dank geht an die [WLANThermo Community](https://wlanthermo.de/) für die großartige Hardware und Software.
+
+*Hinweis: Dies ist ein Community-Projekt und keine offizielle Integration des WLANThermo-Herstellers.*
